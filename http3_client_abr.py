@@ -42,7 +42,7 @@ USER_AGENT = "aioquic/" + aioquic.__version__
 
 def get_bandwidth(http_events, start):
     elapsed = time.time() - start
-    print("latency %.1f" % (start - elapsed))
+    # print("latency %.1f" % (start - elapsed))
 
     # get speed
     octets = 0
@@ -57,6 +57,7 @@ def read_manifest(mpd):
     manifest = json.load(f)
     return manifest
 
+# Returns the quality level the network can afford according to the bandwidth
 def quality_from_bandwidth(mpd, bandwidth):
     manifest = read_manifest(mpd)
 
@@ -64,9 +65,9 @@ def quality_from_bandwidth(mpd, bandwidth):
     p = 1
 
     quality = 0
-    while(quality + 1 < len(manifest.bitrates_kbps) and p * manifest.bitrates_kbps[quality + 1] / bandwidth <= p):
+    while(quality + 1 < len(manifest['bitrates_kbps']) and p * manifest['bitrates_kbps'][quality + 1] / bandwidth <= p):
         quality += 1
-    return quality
+    return quality, manifest['bitrates_kbps'][quality]
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -276,7 +277,7 @@ async def perform_http_request(
         % (octets, elapsed, bandwidth)
     )
 
-    quality = quality_from_bandwidth(mpd, bandwidth)
+    quality, b = quality_from_bandwidth(mpd, bandwidth)
 
     # output response
     if output_dir is not None:
