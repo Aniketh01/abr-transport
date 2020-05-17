@@ -46,9 +46,7 @@ adaptiveInfo = namedtuple("AdaptiveInfo",
 downloadInfo = namedtuple("DownloadInfo",
                           'index quality size downloaded time')
 
-#TODO: Proper calculation of downloadInfo.time.
 #TODO: Find current and next segment
-#TODO: find current_bandwidth according to the segment size / data
 
 def get_bandwidth(http_events, start):
     elapsed = time.time() - start
@@ -78,11 +76,11 @@ def quality_from_bandwidth(manifest, bandwidth):
     return quality, manifest['bitrates_kbps'][quality]
 
 
-def segment_download(manifest, size, idx, quality):
+def segment_download(manifest, size, idx, quality, time):
     if size <= 0:
         return downloadInfo(index=idx, quality=quality, size=0, downloaded=0, time=0)
     else:
-        return downloadInfo(index=idx, quality=quality, size=size, downloaded=size)
+        return downloadInfo(index=idx, quality=quality, size=size, downloaded=size, time=time)
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -294,8 +292,8 @@ async def perform_http_request(
 
     manifest = read_manifest(mpd)
     quality, b = quality_from_bandwidth(manifest, bandwidth)
-    # dp = do_segment_download(manifest, 0, 1, quality)
-    # print(dp)
+    dp = segment_download(manifest, octets, 1, quality, elapsed)
+    print(dp)
 
     # output response
     if output_dir is not None:
