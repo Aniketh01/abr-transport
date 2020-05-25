@@ -40,6 +40,8 @@ logger = logging.getLogger("client")
 HttpConnection = Union[H0Connection, H3Connection]
 
 USER_AGENT = "aioquic/" + aioquic.__version__
+ROOT = os.path.dirname(__file__)
+STATIC_ROOT = os.environ.get("STATIC_ROOT", os.path.join(ROOT, "htdocs"))
 
 adaptiveInfo = namedtuple("AdaptiveInfo",
                           'segment_time bitrates segments')
@@ -271,7 +273,7 @@ class HttpClient(QuicConnectionProtocol):
 
 
 async def perform_http_request(
-    client: HttpClient, url: str, data: str, include: bool, output_dir: Optional[str], mpd: str
+    client: HttpClient, url: str, data: str, include: bool, output_dir: Optional[str]
 ) -> None:
     # perform request
     start = time.time()
@@ -282,6 +284,7 @@ async def perform_http_request(
             headers={"content-type": "application/x-www-form-urlencoded"},
         )
     else:
+        # First GET the manifest
         http_events = await client.get(url)
 
     octets, elapsed, bandwidth = get_bandwidth(http_events, start)
@@ -289,11 +292,6 @@ async def perform_http_request(
         "Received %d bytes in %.1f s (%.3f kbps)"
         % (octets, elapsed, bandwidth)
     )
-
-    manifest = read_manifest(mpd)
-    quality, b = quality_from_bandwidth(manifest, bandwidth)
-    dp = segment_download(manifest, octets, 1, quality, elapsed)
-    print(dp)
 
     # output response
     if output_dir is not None:
@@ -310,6 +308,15 @@ async def perform_http_request(
                         output_file.write(headers + b"\r\n")
                 elif isinstance(http_event, DataReceived):
                     output_file.write(http_event.data)
+
+    host, mpd = url.rsplit('/', 1)
+    logger.info("the mpd path is: %s" % (mpd))
+
+    manifest = read_manifest(mpd)
+    quality, b = quality_from_bandwidth(manifest, bandwidth)
+    size, dp = segment_download(manifest, octets, 1, quality, elapsed)
+    print(dp)
+    os.remove(mpd)
 
 
 def save_session_ticket(ticket: SessionTicket) -> None:
@@ -330,7 +337,6 @@ async def run(
     include: bool,
     output_dir: Optional[str],
     local_port: int,
-    mpd: str,
 ) -> None:
     # parse URL
     parsed = urlparse(urls[0])
@@ -377,7 +383,6 @@ async def run(
                     data=data,
                     include=include,
                     output_dir=output_dir,
-                    mpd=mpd,
                 )
                 for url in urls
             ]
@@ -391,8 +396,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "url", type=str, nargs="+", help="the URL to query (must be HTTPS)"
     )
-
-    parser.add_argument("-m", "--mpd", help = 'Specify the .json file describing the movie chunks.')
 
     parser.add_argument(
         "--ca-certs", type=str, help="load CA certificates from the specified file"
@@ -480,8 +483,6 @@ if __name__ == "__main__":
                 configuration.session_ticket = pickle.load(fp)
         except FileNotFoundError:
             pass
-    if args.mpd:
-        read_manifest(args.mpd)
     if uvloop is not None:
         uvloop.install()
     loop = asyncio.get_event_loop()
@@ -494,7 +495,6 @@ if __name__ == "__main__":
                 include=args.include,
                 output_dir=args.output_dir,
                 local_port=args.local_port,
-                mpd=args.mpd,
             )
         )
     finally:
