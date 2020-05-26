@@ -313,9 +313,19 @@ async def perform_http_request(
     logger.info("the mpd path is: %s" % (mpd))
 
     manifest = read_manifest(mpd)
+
+    # GET first segment
     quality, b = quality_from_bandwidth(manifest, bandwidth)
-    size, dp = segment_download(manifest, octets, 1, quality, elapsed)
-    print(dp)
+    size = manifest['segment_size_bytes'][0][quality]
+    dp = segment_download(manifest, size, 1, quality, elapsed)
+    url = host +'/' + str(size)
+    http_events = await client.get(url)
+    print(url)
+    octets, elapsed, bandwidth = get_bandwidth(http_events, start)
+    logger.info(
+        "Received %d bytes in %.1f s (%.3f kbps)"
+        % (octets, elapsed, bandwidth)
+    )
     os.remove(mpd)
 
 
