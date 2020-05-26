@@ -326,6 +326,24 @@ async def perform_http_request(
         "Received %d bytes in %.1f s (%.3f kbps)"
         % (octets, elapsed, bandwidth)
     )
+
+    # GET the rest of the segments
+    next_segment = 1
+    while next_segment < len(manifest['segment_size_bytes']):
+        quality, b = quality_from_bandwidth(manifest, bandwidth)
+        size = manifest['segment_size_bytes'][next_segment][quality]
+        url = host +'/' + str(size)
+        http_events = await client.get(url)
+        print(url)
+        octets, elapsed, bandwidth = get_bandwidth(http_events, start)
+        logger.info(
+            "Received %d bytes in %.1f s (%.3f kbps)"
+            % (octets, elapsed, bandwidth)
+        )
+        dp = segment_download(manifest, size, 1, quality, elapsed)
+        print(dp)
+        next_segment += 1
+
     os.remove(mpd)
 
 
