@@ -103,8 +103,12 @@ def main_segmentize():
 
 def prepare_mpd(seg_duration):
     bitrates_kbps = []
+    resolution = []
     for b in bitrates:
         bitrates_kbps.append(b*1000)
+
+    for res in resolutions:
+        resolution.append(res.split('x')[1])
 
     seg_size = get_segment_size()
     seg_size= list(map(list, zip(*seg_size)))
@@ -113,6 +117,7 @@ def prepare_mpd(seg_duration):
         #"Segment_duration_ms": 10000,
         "segment_duration_ms": seg_duration,
         "bitrates_kbps": bitrates_kbps,
+        "resolutions": resolution,
         "segment_size_bytes": seg_size
     }
 
