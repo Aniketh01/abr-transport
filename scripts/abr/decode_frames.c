@@ -20,7 +20,7 @@ static void logging(const char *fmt, ...)
     fprintf( stdout, "\n" );
 }
 
-void SaveFrame(char *dirname, AVFrame *pFrame, int width, int height, int iFrame, char frame_type)
+void SaveFrame(char *dirname, AVFrame *pFrame, int width, int height, int iFrame, char frame_type, char *quality)
 {
   FILE *pFile;
   char szFilename[32];
@@ -29,7 +29,7 @@ void SaveFrame(char *dirname, AVFrame *pFrame, int width, int height, int iFrame
   strcpy(filename, dirname);
 
   // Open file
-  sprintf(szFilename, "frame-%03d-%c.ppm", iFrame, frame_type);
+  sprintf(szFilename, "frame-%03d-%c-%s.ppm", iFrame, frame_type, quality);
   strcat(filename, szFilename);
   pFile = fopen(filename, "wb");
   if (pFile == NULL)
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
         // Save the frame to disk
         //if(++i<=5)
         SaveFrame(argv[2], pFrameRGB, pCodecCtx->width, pCodecCtx->height,
-                  i, av_get_picture_type_char(pFrame->pict_type));
+                  i, av_get_picture_type_char(pFrame->pict_type), argv[3]);
         i++;
       }
     }

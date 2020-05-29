@@ -87,7 +87,7 @@ def main_encode():
 
 def segmentize(in_source, dst_dir, quality):
     print('in:%s out:%s' % (in_source, dst_dir))
-    call(["./decode_frame", in_source, dst_dir])
+    call(["./decode_frame", in_source, dst_dir, quality])
 
 
 # Assumes script is ran within the video roots direcoty
