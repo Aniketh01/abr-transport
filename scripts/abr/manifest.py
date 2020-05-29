@@ -7,15 +7,16 @@ import json
 from glob import glob
 import os
 from threading import Thread
+from subprocess import call
 
 start_time = time.time()
 
 logging.basicConfig(filename='manifest_creation-' +
                     str(start_time) + '.log', level=logging.DEBUG)
 
-source = 'Big_Buck_Bunny_1080_10s_10MB.mp4'
+source = 'Big_Buck_Bunny_1080_10s_20MB.mp4'
 prefix = 'dash/'
-framerate = 60
+framerate = 30
 
 frame_type = {'I-Frame': 'PICT_TYPE_I', 'P-Frame': 'PICT_TYPE_P', 'B-Frame': 'PICT_TYPE_B'}
 resolutions=['640x360', '854x480', '1280x720', '1920x1080']#, '2560x1440']
@@ -77,12 +78,16 @@ def main_encode():
 	print ('Started all threads')
 
 
+# def segmentize(in_source, dst_dir, quality):
+#     print('in:%s out:%s' % (in_source, dst_dir))
+#     for name, type in frame_type.items():
+#         cmd = ("ffmpeg -i " + in_source + " -f image2 -vf " + """"select='eq(pict_type,""" +
+#                type + """)'""" + "\" -vsync vfr " + dst_dir + "/" + name + "-" + "%03d-" + quality + "p-.png")
+#         os.system(cmd)
+
 def segmentize(in_source, dst_dir, quality):
     print('in:%s out:%s' % (in_source, dst_dir))
-    for name, type in frame_type.items():
-        cmd = ("ffmpeg -i " + in_source + " -f image2 -vf " + """"select='eq(pict_type,""" +
-               type + """)'""" + "\" -vsync vfr " + dst_dir + "/" + name + "-" + "%03d-" + quality + "p-.png")
-        os.system(cmd)
+    call(["./decode_frame", in_source, dst_dir])
 
 
 # Assumes script is ran within the video roots direcoty
@@ -91,8 +96,8 @@ def main_segmentize():
         quality = resolution.split('x')[1]
         #dst = res + '/out'
         in_source = ('%s%s/bbb_%s_%s.mp4' % (prefix, quality, quality, framerate))
-        check_and_create('%s%s/out' % (prefix, quality))
-        out_dir = '%s%s/out' % (prefix, quality)
+        check_and_create('%s%s/out/' % (prefix, quality))
+        out_dir = '%s%s/out/' % (prefix, quality)
         segmentize(in_source, out_dir, quality)
 
 
