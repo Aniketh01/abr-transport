@@ -6,6 +6,7 @@ import os
 import pickle
 import ssl
 import time
+from glob import glob
 from collections import deque
 from typing import Callable, Deque, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
@@ -46,7 +47,7 @@ STATIC_ROOT = os.environ.get("STATIC_ROOT", os.path.join(ROOT, "htdocs"))
 adaptiveInfo = namedtuple("AdaptiveInfo",
                           'segment_time bitrates segments')
 downloadInfo = namedtuple("DownloadInfo",
-                          'index quality size downloaded time')
+                          'index url quality resolution size downloaded time')
 
 #TODO: Find current and next segment
 
@@ -96,11 +97,11 @@ def quality_from_bandwidth(manifest, bandwidth):
     return quality, manifest['bitrates_kbps'][quality]
 
 
-def segment_download(manifest, size, idx, quality, time):
+def segment_download(manifest, size, idx, url, quality, resolution, time):
     if size <= 0:
-        return downloadInfo(index=idx, quality=quality, size=0, downloaded=0, time=0)
+        return downloadInfo(index=idx, url="None", quality=quality, resolution=resolution, size=0, downloaded=0, time=0)
     else:
-        return downloadInfo(index=idx, quality=quality, size=size, downloaded=size, time=time)
+        return downloadInfo(index=idx, url=url, quality=quality, resolution=resolution, size=size, downloaded=size, time=time)
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -322,20 +323,22 @@ async def perform_http_request(
     # GET first segment
     quality, b = quality_from_bandwidth(manifest, bandwidth)
     segment_resolution = manifest['resolutions'][quality]
-    print(segment_resolution)
-    # size = manifest['segment_size_bytes'][0][quality]
-    # dp = segment_download(manifest, size, 1, quality, elapsed)
-    url = host +'/' + "frame-001-I-" + segment_resolution + ".ppm"
-    print(url)
+
+    first_segment = glob("htdocs/out/" + "frame-1-" + segment_resolution + "-*")
+    for segment in first_segment:
+        _, segment = segment.rsplit('/', 1)
+        url = host +'/' + segment
     http_events = await client.get(url)
-    print(url)
     octets, elapsed, bandwidth = get_bandwidth(http_events, start)
     logger.info(
         "Received %d bytes in %.1f s (%.3f kbps)"
         % (octets, elapsed, bandwidth)
     )
 
+    size = manifest['segment_size_bytes'][0][quality]
+    dp = segment_download(manifest, size, 1, url, quality, segment_resolution, elapsed)
     download_response(output_dir, url, http_events, include)
+    print(dp)
 
     os.remove(mpd)
 
