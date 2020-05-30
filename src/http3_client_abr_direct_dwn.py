@@ -340,6 +340,28 @@ async def perform_http_request(
     download_response(output_dir, url, http_events, include)
     print(dp)
 
+        # GET the rest of the segments
+    next_segment_idx = 2
+    while next_segment_idx < len(manifest['segment_size_bytes']):
+        quality, b = quality_from_bandwidth(manifest, bandwidth)
+        segment_resolution = manifest['resolutions'][quality]
+
+        segment = glob("htdocs/out/" + "frame-" + str(next_segment_idx) + "-" + segment_resolution + "-*")
+        for seg in segment:
+            _, seg = seg.rsplit('/', 1)
+            url = host +'/' + seg
+            # print(url)
+            octets, elapsed, bandwidth = get_bandwidth(http_events, start)
+            logger.info(
+                "Received %d bytes in %.1f s (%.3f kbps)"
+                % (octets, elapsed, bandwidth)
+            )
+            size = manifest['segment_size_bytes'][0][quality]
+            dp = segment_download(manifest, size, next_segment_idx, url, quality, segment_resolution, elapsed)
+            download_response(output_dir, url, http_events, include)
+            print(dp)
+        next_segment_idx += 1
+
     os.remove(mpd)
 
 
