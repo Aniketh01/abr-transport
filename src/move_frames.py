@@ -24,6 +24,11 @@ def get_out_dir(dir_path):
                     list_output.append(out_dir)
     return list_output
 
+def move_manifest(dirpath):
+    root_path = os.path.normpath(dirpath + os.sep + os.pardir)
+    mpd = glob(root_path + '/' + '*.json')
+    return mpd
+
 
 def main():
     parser = argparse.ArgumentParser(add_help=True, formatter_class=RawTextHelpFormatter,
@@ -45,7 +50,14 @@ def main():
             files = glob(folder + "/" + "frame-*")
             for file in files:
                 shutil.copy2(file, args.output)
+    elif args.action == 'mv_manifest':
+        print('copying manifest from %s to %s' % (args.input, args.output))
+        mpd = move_manifest(args.input)
+        # There should be only one mpd file in the dir *always*.
+        for manifest in mpd:
+            shutil.copy2(manifest, args.output)
 
+    print("DONE: Copy process complete!")
 
 if __name__ == "__main__":
     main()
