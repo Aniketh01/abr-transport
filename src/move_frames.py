@@ -30,15 +30,21 @@ def main():
                                      epilog="Example usage:\n\tpython3 move_frames.py --input=directory --output=directory")
     parser.add_argument('--input', '-i', help='Input dir', required=True)
     parser.add_argument('--output', '-o', help='Output dir', required=True)
+    parser.add_argument('--action', required=True, help='Action to be performed by the script. Possible actions are: mv_frame, mv_manifest')
     args = parser.parse_args()
+
+
+    print ('Running "%s" script with arguments: input(%s) output(%s)' % (args.action, args.input, args.output))
 
     check_and_create(args.output)
 
-    out_dir = get_out_dir(args.input)
-    for folder in out_dir:
-        files = glob(folder + "/" + "frame-*")
-        for file in files:
-            shutil.copy2(file, args.output)
+    if args.action == 'mv_frame':
+        print('Copying frames from %s to %s' % (args.input, args.output))
+        out_dir = get_out_dir(args.input)
+        for folder in out_dir:
+            files = glob(folder + "/" + "frame-*")
+            for file in files:
+                shutil.copy2(file, args.output)
 
 
 if __name__ == "__main__":
