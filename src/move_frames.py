@@ -1,4 +1,5 @@
 import argparse
+from argparse import RawTextHelpFormatter
 import shutil, os
 from glob import glob
 
@@ -25,9 +26,10 @@ def get_out_dir(dir_path):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input', '-i', help='Input dir')
-    parser.add_argument('--output', '-o', help='Output dir')
+    parser = argparse.ArgumentParser(add_help=True, formatter_class=RawTextHelpFormatter,
+                                     epilog="Example usage:\n\tpython3 move_frames.py --input=directory --output=directory")
+    parser.add_argument('--input', '-i', help='Input dir', required=True)
+    parser.add_argument('--output', '-o', help='Output dir', required=True)
     args = parser.parse_args()
 
     check_and_create(args.output)
