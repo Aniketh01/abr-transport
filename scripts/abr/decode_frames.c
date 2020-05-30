@@ -29,7 +29,7 @@ void SaveFrame(char *dirname, AVFrame *pFrame, int width, int height, int iFrame
   strcpy(filename, dirname);
 
   // Open file
-  sprintf(szFilename, "frame-%03d-%c-%s.ppm", iFrame, frame_type, quality);
+  sprintf(szFilename, "frame-%01d-%s-%c.ppm", iFrame, quality, frame_type);
   strcat(filename, szFilename);
   pFile = fopen(filename, "wb");
   if (pFile == NULL)
