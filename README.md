@@ -21,3 +21,18 @@ So, then you need to get clever with resetting/closing streams when they are no 
 
 Depending on the scheme, this can become hairy, as you need to get the timing right with a tradeoff between retransmission
 overhead and cancelling streams too early. 
+
+
+### Installing aioquic submodule to directly use it.
+
+Try executing the below command inside the submodule:
+
+```
+$ pip install .
+```
+
+or, again within the submodule:
+
+```
+$ python3 setup.py install --user
+```
