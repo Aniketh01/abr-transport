@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import json
 import logging
 import os
 import pickle
@@ -12,6 +11,7 @@ from urllib.parse import urlparse
 
 import wsproto
 import wsproto.events
+from quic_logger import QuicDirectoryLogger
 
 import aioquic
 from aioquic.asyncio.client import connect
@@ -26,8 +26,7 @@ from aioquic.h3.events import (
 )
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
-from aioquic.quic.logger import QuicLogger
-from aioquic.tls import SessionTicket
+from aioquic.tls import CipherSuite, SessionTicket
 
 try:
     import uvloop
@@ -289,6 +288,7 @@ async def run(
     include: bool,
     output_dir: Optional[str],
     local_port: int,
+    zero_rtt: bool,
 ) -> None:
     # parse URL
     parsed = urlparse(urls[0])
@@ -310,6 +310,7 @@ async def run(
         create_protocol=HttpClient,
         session_ticket_handler=save_session_ticket,
         local_port=local_port,
+        wait_connected=not zero_rtt,
     ) as client:
         client = cast(HttpClient, client)
 
@@ -352,6 +353,11 @@ if __name__ == "__main__":
         "--ca-certs", type=str, help="load CA certificates from the specified file"
     )
     parser.add_argument(
+        "--cipher-suites",
+        type=str,
+        help="only advertise the given cipher suites, e.g. `AES_256_GCM_SHA384,CHACHA20_POLY1305_SHA256`",
+    )
+    parser.add_argument(
         "-d", "--data", type=str, help="send the specified data in a POST request"
     )
     parser.add_argument(
@@ -381,7 +387,10 @@ if __name__ == "__main__":
         "--output-dir", type=str, help="write downloaded files to this directory",
     )
     parser.add_argument(
-        "-q", "--quic-log", type=str, help="log QUIC events to a file in QLOG format"
+        "-q",
+        "--quic-log",
+        type=str,
+        help="log QUIC events to QLOG files in the specified directory",
     )
     parser.add_argument(
         "-l",
@@ -401,6 +410,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--local-port", type=int, default=0, help="local port to bind for connections",
     )
+    parser.add_argument(
+        "--zero-rtt", action="store_true", help="try to send requests using 0-RTT"
+    )
 
     args = parser.parse_args()
 
@@ -418,6 +430,10 @@ if __name__ == "__main__":
     )
     if args.ca_certs:
         configuration.load_verify_locations(args.ca_certs)
+    if args.cipher_suites:
+        configuration.cipher_suites = [
+            CipherSuite[s] for s in args.cipher_suites.split(",")
+        ]
     if args.insecure:
         configuration.verify_mode = ssl.CERT_NONE
     if args.max_data:
@@ -425,7 +441,7 @@ if __name__ == "__main__":
     if args.max_stream_data:
         configuration.max_stream_data = args.max_stream_data
     if args.quic_log:
-        configuration.quic_logger = QuicLogger()
+        configuration.quic_logger = QuicDirectoryLogger(args.quic_log)
     if args.secrets_log:
         configuration.secrets_log_file = open(args.secrets_log, "a")
     if args.session_ticket:
@@ -438,18 +454,14 @@ if __name__ == "__main__":
     if uvloop is not None:
         uvloop.install()
     loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(
-            run(
-                configuration=configuration,
-                urls=args.url,
-                data=args.data,
-                include=args.include,
-                output_dir=args.output_dir,
-                local_port=args.local_port,
-            )
+    loop.run_until_complete(
+        run(
+            configuration=configuration,
+            urls=args.url,
+            data=args.data,
+            include=args.include,
+            output_dir=args.output_dir,
+            local_port=args.local_port,
+            zero_rtt=args.zero_rtt,
         )
-    finally:
-        if configuration.quic_logger is not None:
-            with open(args.quic_log, "w") as logger_fp:
-                json.dump(configuration.quic_logger.to_dict(), logger_fp, indent=4)
+    )
