@@ -41,3 +41,13 @@ class abr:
     def NextSegmentSize(self, segment_idx, quality):
         size = self.manifestData['segment_size_bytes'][segment_idx][quality]
         return size
+
+    def GetCorrespondingQualityIndex(self, bitrate):
+        manifest_bitrate = self.manifestData.get('bitrates_kbps')
+
+        for m_bitrate in manifest_bitrate:
+            idx = manifest_bitrate.index(m_bitrate)
+            if int(m_bitrate) == bitrate:
+                return idx
+
+        return -1 #states no representation with given bitrate found
