@@ -66,7 +66,7 @@ class BBA(abr):
                     break
         elif funCurrBuffer <= rateMinus:
             for i in range(len(bitrates)):
-                if bitrates[i] > funCurrBuffer:
+                if bitrates[i] >= funCurrBuffer:
                     rateNext = bitrates[i]
                     break
         else:
