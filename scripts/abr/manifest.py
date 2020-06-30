@@ -116,6 +116,8 @@ def prepare_mpd(seg_duration):
     manifest = {
         #"Segment_duration_ms": 10000,
         "segment_duration_ms": seg_duration,
+        "total_segments": len(seg_size),
+        "total_representation": len(bitrates_kbps) ,
         "bitrates_kbps": bitrates_kbps,
         "resolutions": resolution,
         "segment_size_bytes": seg_size
