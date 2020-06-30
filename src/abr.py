@@ -42,6 +42,12 @@ class abr:
         size = self.manifestData['segment_size_bytes'][segment_idx][quality]
         return size
 
+    def GetSegmentDuration(self):
+        return self.manifestData['segment_duration_ms']
+
+    def GetTotalSegments(self):
+        return self.manifestData['total_segments']
+
     def GetCorrespondingQualityIndex(self, bitrate):
         manifest_bitrate = self.manifestData.get('bitrates_kbps')
 
