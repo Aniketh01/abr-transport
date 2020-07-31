@@ -74,8 +74,8 @@ class BBA2(abr):
             return (currBuffer - self.reservoir) * self.k + self.chunksizeMin
 
     def NextSegmentQualityIndex(self, playerStats):
-        # currBuffer = 1
-        # segIdx = 80
+        # currBuffer = 0
+        # segIdx = -1
         currBuffer = playerStats['currBuffer']
         segIdx = playerStats['segment_Idx']
 
@@ -105,7 +105,7 @@ class BBA2(abr):
         rateNext = self.getRateFromChunkMap(currBuffer, segIdx)
         self.ratePrev = rateNext
         self.segmentNumber += 1
-        return rateNext
+        return self.GetCorrespondingQualityIndex(rateNext)
 
     def getRateFromChunkMap(self, currBuffer, segIdx):
         rMax = self.bitrates[-1]
