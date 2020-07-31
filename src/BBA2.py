@@ -1,4 +1,5 @@
 from abr import abr
+# import json
 
 BBA2_STEADY_STATE = 'steady'
 BBA2_STARTUP_STATE = 'startup'
@@ -6,8 +7,8 @@ X = 60
 
 
 class BBA2(abr):
-    def __init__(self, manifestData, args):
-        super(BBA2, self).__init__(manifestData, args)
+    def __init__(self, manifestData):
+        super(BBA2, self).__init__(manifestData)
         self.reservoir = 8
         self.normal_reservoir = 8
         self.cushion = 46
@@ -71,3 +72,99 @@ class BBA2(abr):
             return self.chunksizeMax
         else:
             return (currBuffer - self.reservoir) * self.k + self.chunksizeMin
+
+    def NextSegmentQualityIndex(self, playerStats):
+        # currBuffer = 1
+        # segIdx = 80
+        currBuffer = playerStats['currBuffer']
+        segIdx = playerStats['segment_Idx']
+
+        if self.state == BBA2_STARTUP_STATE and self.segmentNumber != 0:
+            phase = self.checkPhase(currBuffer, segIdx)
+            print('phase:',phase)
+
+            segDuration = self.GetSegmentDuration()
+            tput = playerStats['lastTput_kbps']
+            repID = self.GetCorrespondingQualityIndex(self.ratePrev) - 1 # -1 coz repid starts from 1.
+            segSize = self.manifestData['segment_size_bytes'][segIdx][repID]
+            deltaB = segDuration - ((segSize * 0.008) / tput)
+
+            if (phase == 0 and deltaB >= 0.875 * segDuration) or (phase == 1 and deltaB >= 0.5 * segDuration):
+                rateNext = self.getNextBetterRate(self.ratePrev)
+            else:
+                rateNext = self.ratePrev
+            
+            if self.prevBuffer > currBuffer or self.getRateFromChunkMap(currBuffer, segIdx) > rateNext:
+                self.state = BBA2_STEADY_STATE
+            else:
+                self.ratePrev = rateNext
+                self.prevBuffer = currBuffer
+                self.segmentNumber += 1
+                return rateNext
+
+        rateNext = self.getRateFromChunkMap(currBuffer, segIdx)
+        self.ratePrev = rateNext
+        self.segmentNumber += 1
+        return rateNext
+
+    def getRateFromChunkMap(self, currBuffer, segIdx):
+        rMax = self.bitrates[-1]
+        rMin = self.bitrates[0]
+
+        ratePlus = None
+        rateMinus = None
+
+        if self.ratePrev == rMax:
+            ratePlus = rMax
+        else:
+            for i in range(len(self.bitrates)):
+                if self.bitrates[i] > self.ratePrev:
+                    ratePlus = self.bitrates[i]
+                    break
+        if self.ratePrev == rMin:
+            rateMinus = rMin
+        else:
+            for i in range(len(self.bitrates) -1, -1, -1):
+                if self.bitrates[i] < self.ratePrev:
+                    rateMinus = self.bitrates[i]
+                    break
+        funCurrBuffer = self.fCurrBuffer(currBuffer)
+		# print('{}, minus:{}, plus:{}, buffer:{}, corrSize:{}'.format(segIdx, rateMinus, ratePlus, currBuffer, funCurrBuffer))
+        rateNext = None
+
+        ratePlusSize = self.manifestData['segment_size_bytes'][segIdx][self.GetCorrespondingQualityIndex(ratePlus)-1]
+        rateMinusSize = self.manifestData['segment_size_bytes'][segIdx][self.GetCorrespondingQualityIndex(rateMinus)-1]
+
+        if currBuffer <= self.reservoir:
+            rateNext = rMin
+        elif currBuffer >= self.reservoir + self.cushion:
+            rateNext = rMax
+        elif funCurrBuffer >= ratePlusSize:
+            rateNext = self.chunkSizeToRate(funCurrBuffer, segIdx)
+        elif funCurrBuffer <= rateMinusSize:
+            rateNext = self.chunkSizeToRate(funCurrBuffer, segIdx)
+        else:
+            rateNext = self.ratePrev
+        
+        return rateNext
+
+    def chunkSizeToRate(self, chunkSize, segIdx):
+        minDiff = abs(self.manifestData['segment_size_bytes'][segIdx][0] - chunkSize)
+        minDiffIdx = 0
+
+        for i, s in enumerate(self.manifestData['segment_size_bytes'][segIdx]):
+            d = abs(s - chunkSize)
+            if d < minDiff:
+                minDiff = d
+                minDiffIdx = i
+        
+        return self.bitrates[minDiffIdx]
+
+
+# if __name__ == "__main__":
+#     f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
+#     manifest = json.load(f)
+
+#     a = BBA2(manifest)
+#     q = a.NextSegmentQualityIndex(10)
+#     print(q)
