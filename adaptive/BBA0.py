@@ -1,4 +1,5 @@
 from abr import abr
+import json
 
 class BBA(abr):
     def __init__(self, manifestData):
@@ -17,7 +18,8 @@ class BBA(abr):
             return rateMap[self.reservoir]
     
     def NextSegmentQualityIndex(self, playerStats):
-        currBuffer = playerStats["currBuffer"]
+        currBuffer = 70
+        #currBuffer = playerStats["currBuffer"]
         bitrates = self.getBitrateList()
         bitrates = sorted(bitrates)
         rateMap = {}
@@ -74,3 +76,11 @@ class BBA(abr):
         self.ratePrev = rateNext
 
         return self.GetCorrespondingQualityIndex(rateNext)
+
+
+if __name__ == "__main__":
+    f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
+    manifest = json.load(f)
+    a = BBA(manifest)
+    q = a.NextSegmentQualityIndex(60)
+    print(q)
