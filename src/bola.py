@@ -55,10 +55,10 @@ class Bola(abr):
         return quality
 
 
-if __name__ == "__main__":
-    f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
-    manifest = json.load(f)
-    a = Bola(manifest)
-    # for i in range(0, 150, 10):
-    #     q = a.NextSegmentQualityIndex(10, i)
-    q = a.NextSegmentQualityIndex(10)
+# if __name__ == "__main__":
+#     f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
+#     manifest = json.load(f)
+#     a = Bola(manifest)
+#     # for i in range(0, 150, 10):
+#     #     q = a.NextSegmentQualityIndex(10, i)
+#     q = a.NextSegmentQualityIndex(10)
