@@ -43,7 +43,7 @@ class abr:
         return size
 
     def GetSegmentDuration(self):
-        return self.manifestData['segment_duration_ms']
+        return float(self.manifestData['segment_duration_ms'])
 
     def GetTotalSegments(self):
         return self.manifestData['total_segments']
