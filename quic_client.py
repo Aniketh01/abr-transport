@@ -4,6 +4,7 @@ import logging
 import pickle
 import ssl
 from typing import Optional, cast
+from urllib.parse import urlparse
 
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, DatagramFrameReceived, StreamDataReceived
@@ -61,7 +62,15 @@ class QuicClient(QuicFactorySocket):
                 waiter.set_result(None)
 
 
-async def run(configuration: QuicConfiguration, host: str, port: int, zero_rtt: bool) -> None:
+async def run(configuration: QuicConfiguration, url: str, zero_rtt: bool) -> None:
+    parsed = urlparse(url[0])
+    if ":" in parsed.netloc:
+        host, port = parsed.netloc.split(":")
+        port = int(port)
+    else:
+        host = parsed.netloc
+        port = 8080
+
     async with connect(
         host, port,
         configuration=configuration,
@@ -94,9 +103,8 @@ if __name__ == "__main__":
     print(defaults)
     parser = argparse.ArgumentParser(description="QUIC client")
     parser.add_argument(
-        "host", type=str, help="The remote peer's host name or IP address"
+        "url", type=str, nargs="+", help="the URL to query"
     )
-    parser.add_argument("port", type=int, help="The remote peer's port number")
     parser.add_argument(
         "--ca-certs", type=str,
         help="load CA certificates from the specified file"
@@ -162,8 +170,7 @@ if __name__ == "__main__":
     loop.run_until_complete(
         run(
             configuration=configuration,
-            host=args.host,
-            port=args.port,
+            url=args.url,
             zero_rtt=args.zero_rtt,
         )
     )
