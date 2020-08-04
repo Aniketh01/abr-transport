@@ -1,27 +1,20 @@
 ### ABR-over-QUIC
 
-As per the Not so QUIC: A Performance Study of DASH over QUIC, Bhat et al. TCP is more aggressive in downloading higher quality
-birtrate media segments than QUIC. One of the reasons pointed out by the authors for this particular behaviour is that, the
-retrofitting vanilla ABR over QUIC doesn't uses the multitude of features and enhancment QUIC provides inorder for performant
-media streaming.
+*This is still in a work in progress state and the concepts and results related to this would be shared publicly.*
 
-Hence this research is an study to optimize the retrofit of ABR over QUIC, in the hope to provide better streaming QoE by
-taking advantage of useful features in QUIC.
+This repository is used to store information repository to the project where we try to measure and analyse the effects of video streaming, 
+specifically DASH (ABR) streaming over the new generation protocol - QUIC and HTTP/3.
 
-The idea here is to "exploit"/"abuse" QUIC streams and the fact that stream IDs are cheap (they are just integers after all) to
-send/receive media segments.
+`protocol`: This directory contain an asyncio based implementation of quic protocol using aioquic library.
+Most of the code is inspired by the library itself and being directly modified from it.
+`adaptive`: This directory contain the adaptive bitrate algorithm implementation for the project.
+`script`: This directory contain the script related to the creation of frames and segments from video file 
+and further helper scripts to produce a custom manifest file. 
+`tests`: This directory contain the ssl keys for the protocol.
+`htdocs`: This directory contain files to test and debug the protocol.
 
-One (naive) example would be: every video frame you transmit is sent on a new QUIC stream. So the first I-frame is on stream 0,
-the second P frame is on stream 4 (note that in QUIC stream nrs are in increments of 4), B frame on 8, etc. 
-Since streams are independent of one another, you get pretty much the same out-of-order-no-hol-blocking guarantees you
-get from unreliable setups.
 
-But it is more complicated of course, because the server is still re-transmitting frames/streams that were lost. 
-So, then you need to get clever with resetting/closing streams when they are no longer needed to prevent that.
-
-Depending on the scheme, this can become hairy, as you need to get the timing right with a tradeoff between retransmission
-overhead and cancelling streams too early. 
-
+Below, you can find the necessary steps inorder to configure this project.
 
 ### Installing aioquic submodule to directly use it.
 
