@@ -7,10 +7,14 @@ specifically DASH (ABR) streaming over the new generation protocol - QUIC and HT
 
 `protocol`: This directory contain an asyncio based implementation of quic protocol using aioquic library.
 Most of the code is inspired by the library itself and being directly modified from it.
+
 `adaptive`: This directory contain the adaptive bitrate algorithm implementation for the project.
+
 `script`: This directory contain the script related to the creation of frames and segments from video file 
-and further helper scripts to produce a custom manifest file. 
+and further helper scripts to produce a custom manifest file.
+
 `tests`: This directory contain the ssl keys for the protocol.
+
 `htdocs`: This directory contain files to test and debug the protocol.
 
 
