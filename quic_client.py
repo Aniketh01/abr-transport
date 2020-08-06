@@ -3,7 +3,7 @@ import argparse
 import logging
 import pickle
 import ssl
-from typing import Optional, cast
+from typing import Optional, cast, List
 from urllib.parse import urlparse
 
 from aioquic.quic.configuration import QuicConfiguration
@@ -62,8 +62,8 @@ class QuicClient(QuicFactorySocket):
                 waiter.set_result(None)
 
 
-async def run(configuration: QuicConfiguration, url: str, zero_rtt: bool) -> None:
-    parsed = urlparse(url[0])
+async def run(configuration: QuicConfiguration, urls: List[str], zero_rtt: bool) -> None:
+    parsed = urlparse(urls[0])
     if ":" in parsed.netloc:
         host, port = parsed.netloc.split(":")
         port = int(port)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     loop.run_until_complete(
         run(
             configuration=configuration,
-            url=args.url,
+            urls=args.url,
             zero_rtt=args.zero_rtt,
         )
     )
