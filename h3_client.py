@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import pickle
 from urllib.parse import urlparse
 import argparse
 from typing import Deque, Dict, List, Optional, Union, cast
@@ -20,6 +21,8 @@ from aioquic.h3.events import (
 )
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
+
+from quic_logger import QuicDirectoryLogger
 
 from protocol.client import connect
 from protocol.socketFactory import QuicFactorySocket
@@ -96,11 +99,6 @@ class HttpClient(QuicFactorySocket):
                 if event.stream_ended:
                     request_waiter = self._request_waiter.pop(stream_id)
                     request_waiter.set_result(self._request_events.pop(stream_id))
-
-            elif stream_id in self._websockets:
-                # websocket
-                websocket = self._websockets[stream_id]
-                websocket.http_event_received(event)
 
             elif event.push_id in self.pushes:
                 # push
