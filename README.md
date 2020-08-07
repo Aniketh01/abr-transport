@@ -38,14 +38,21 @@ $ python3 setup.py install --user
 
 ### Usage:
 
+
 **Server**
 
 ```
-python3 server.py -c tests/ssl_cert.pem -k tests/ssl_key.pem -v
+$ python3 server.py -c tests/ssl_cert.pem -k tests/ssl_key.pem -v
 ```
 
 **Move frames**
 
 ```
-python3 move_frames.py --input ../scripts/abr/dash --output htdocs/out --action=mv_manifest
+$ python3 move_frames.py --input ../scripts/abr/dash --output htdocs/out --action=mv_manifest
+```
+
+**How to execute the `decode_frame.c` file inside `abr-over-quic/scripts/abr`?**
+
+```
+~$ cc decode_frames.c -lstdc++ -lavcodec -lavformat -lavutil -lswresample -lswscale -o decode
 ```
