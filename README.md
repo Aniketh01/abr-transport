@@ -33,3 +33,19 @@ or, again within the submodule:
 ```
 $ python3 setup.py install --user
 ```
+
+
+
+### Usage:
+
+**Server**
+
+```
+python3 server.py -c tests/ssl_cert.pem -k tests/ssl_key.pem -v
+```
+
+**Move frames**
+
+```
+python3 move_frames.py --input ../scripts/abr/dash --output htdocs/out --action=mv_manifest
+```
