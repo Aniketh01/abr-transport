@@ -56,3 +56,25 @@ $ python3 move_frames.py --input ../scripts/abr/dash --output htdocs/out --actio
 ```
 ~$ cc decode_frames.c -lstdc++ -lavcodec -lavformat -lavutil -lswresample -lswscale -o decode
 ```
+
+#### Using manifest.py script for various functions
+
+*In the order of how the execution should be done.*
+
+**Re-encode the given input to various resolutions bitrates**
+
+```
+$ python3 manifest.py --input Big_Buck_Bunny_1080_10s_20MB.mp4 --action=encode
+```
+
+**Create segments for all the re-encoded video files**
+
+```
+$ python3 manifest.py --input Big_Buck_Bunny_1080_10s_20MB.mp4 --action=segmentation
+```
+
+**Create a custom manifest file for the tests**
+
+```
+$ python3 manifest.py --input Big_Buck_Bunny_1080_10s_20MB.mp4 --action=mpd --seg_duration=1
+```
