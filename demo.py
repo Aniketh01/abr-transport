@@ -20,7 +20,7 @@ STATIC_URL = "/"
 LOGS_PATH = os.path.join(STATIC_ROOT, "logs")
 QVIS_URL = "https://qvis.edm.uhasselt.be/"
 
-templates = Jinja2Templates(directory=os.path.join(ROOT, "templates"))
+templates = Jinja2Templates(directory=os.path.join(STATIC_ROOT, "templates"))
 app = Starlette()
 
 
