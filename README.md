@@ -8,6 +8,8 @@ specifically DASH (ABR) streaming over the new generation protocol - QUIC and HT
 `protocol`: This directory contain an asyncio based implementation of quic protocol using aioquic library.
 Most of the code is inspired by the library itself and being directly modified from it.
 
+`client`: This directory contain all the client implementation classes which are referenced and used at the main entry point of the code.
+
 `adaptive`: This directory contain the adaptive bitrate algorithm implementation for the project.
 
 `script`: This directory contain the script related to the creation of frames and segments from video file 
@@ -38,6 +40,17 @@ $ python3 setup.py install --user
 
 ### Usage:
 
+**Client**
+
+- H3 only support client
+```
+python3 player.py https://localhost:4433/10 --ca-certs tests/pycacert.pem --output-dir=. --include -v
+```
+
+- QUIC only support client
+```
+python3 player.py https://localhost:4433/ --ca-certs tests/pycacert.pem --output-dir=. --include --legacy-quic -v
+```
 
 **Server**
 

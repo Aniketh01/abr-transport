@@ -39,11 +39,6 @@ def save_session_ticket(ticket: SessionTicket) -> None:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
 
-#TODO: Transport: client run() function should be central here
-#TODO: Transport: The main() function should be here which takes configuration params and args
-#TODO: Transport: quic only and https (with h3) only schemes should be supported with an arg switch or configs.
-#TODO: Streaming: ABR functionality usage should be handled here.
-#TODO: Streaming: ABR algorithm selection should be handled here using an arg switch or configs.
 
 async def run(
     configuration: QuicConfiguration,
