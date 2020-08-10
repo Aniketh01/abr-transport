@@ -122,11 +122,13 @@ class HttpRequestHandler:
             )
         self.transmit()
 
+
 class HttpServerProtocol(QuicFactorySocket):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._handlers: Dict[int, Handler] = {}
+        self._handlers: Dict[int, HttpRequestHandler] = {}
         self._http: Optional[HttpConnection] = None
+        self.quic_client: bool = False
 
     def http_event_received(self, event: H3Event) -> None:
         if isinstance(event, HeadersReceived) and event.stream_id not in self._handlers:
@@ -192,7 +194,7 @@ class HttpServerProtocol(QuicFactorySocket):
             and event.stream_id in self._handlers
         ):
             handler = self._handlers[event.stream_id]
-            handler.http_event_received(event)\
+            handler.http_event_received(event)
 
     def quic_event_received(self, event: QuicEvent) -> None:
         if isinstance(event, ProtocolNegotiated):
@@ -200,16 +202,23 @@ class HttpServerProtocol(QuicFactorySocket):
                 self._http = H3Connection(self._quic)
             elif event.alpn_protocol.startswith("hq-"):
                 self._http = H0Connection(self._quic)
+            elif event.alpn_protocol.startswith("quic"):
+                self.quic_client = True
+
 
         if isinstance(event, DatagramFrameReceived):
             if event.data == b'quic':
                 self._quic.send_datagram_frame(b'quic-ack')
 
         if isinstance(event, StreamDataReceived):
-            print(f"print event {event.data}")
-            data = b'quic stream-data recv'
-            end_stream = False
-            self._quic.send_stream_data(event.stream_id, data, end_stream)
+            if self.quic_client is True:
+                print(f"print event {event.data}")
+                data = b'quic stream-data recv'
+                end_stream = False
+                self._quic.send_stream_data(event.stream_id, data, end_stream)
+            else:
+                #TODO: Yet to handle a http_client streamDataReceived event
+                pass
 
         #  pass event to the HTTP layer
         if self._http is not None:
