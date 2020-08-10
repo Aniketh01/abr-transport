@@ -22,8 +22,6 @@ from aioquic.h3.events import (
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
 
-from quic_logger import QuicDirectoryLogger
-
 from protocol.client import connect
 from protocol.socketFactory import QuicFactorySocket
 

@@ -20,8 +20,8 @@ from aioquic.tls import SessionTicket
 
 from protocol.client import connect
 
-from h3_client import HttpClient, perform_http_request
-from quic_client import QuicClient
+from clients.h3_client import HttpClient, perform_http_request
+from clients.quic_client import QuicClient
 from quic_logger import QuicDirectoryLogger
 
 import config

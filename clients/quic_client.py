@@ -9,8 +9,6 @@ from urllib.parse import urlparse
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, DatagramFrameReceived, StreamDataReceived
 
-from quic_logger import QuicDirectoryLogger
-
 from protocol.client import connect
 from protocol.socketFactory import QuicFactorySocket
 
