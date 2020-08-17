@@ -187,14 +187,12 @@ if __name__ == "__main__":
 
     if args.output_dir is not None and not os.path.isdir(args.output_dir):
         raise Exception("%s is not a directory" % args.output_dir)
+    elif args.output_dir is None:
+        args.output_dir = config.OUT_DIR
 
-    if args.manifest_file is not None:
-        m_file = open(args.manifest_file)
-    else:
-        m_file = open(config.MANIFEST_FILE)
-    manifest = json.load(m_file)
-
-    # print(manifest)
+    if args.manifest_file is None:
+        args.manifest_file = config.MANIFEST_FILE
+    manifest = json.load(open(args.manifest_file))
 
     configuration = QuicConfiguration(
         is_client=True,
@@ -202,8 +200,10 @@ if __name__ == "__main__":
         max_datagram_frame_size=65536
     )
 
-    if args.ca_certs:
-        configuration.load_verify_locations(args.ca_certs)
+    if args.ca_certs is None:
+        args.ca_certs = config.CA_CERTS
+    configuration.load_verify_locations(args.ca_certs)
+
     if args.quic_log:
         configuration.quic_logger = QuicDirectoryLogger(args.quic_log)
     if args.insecure:
