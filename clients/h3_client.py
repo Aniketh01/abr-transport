@@ -160,6 +160,8 @@ async def perform_http_request(
         % (octets, elapsed, octets * 8 / elapsed / 1000000)
     )
 
+    tput = octets * 8 / elapsed / 1000000
+
     # output response
     if output_dir is not None:
         output_path = os.path.join(
@@ -175,3 +177,5 @@ async def perform_http_request(
                         output_file.write(headers + b"\r\n")
                 elif isinstance(http_event, DataReceived):
                     output_file.write(http_event.data)
+
+    return octets, tput
