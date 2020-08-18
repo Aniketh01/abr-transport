@@ -16,97 +16,24 @@ except ImportError:
 
 from aioquic.h3.connection import H3_ALPN, H3Connection
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.tls import SessionTicket
 
-from protocol.client import connect
-
-from clients.h3_client import HttpClient, perform_http_request
-from clients.quic_client import QuicClient
+from clients.dash_client import DashClient, perform_download
 from quic_logger import QuicDirectoryLogger
 
 import config
 from adaptive.mpc import MPC
+from clients.build import run
 
 logger = logging.getLogger("DASH Player")
 
-def save_session_ticket(ticket: SessionTicket) -> None:
-    """
-    Callback which is invoked by the TLS engine when a new session ticket
-    is received.
-    """
-    logger.info("New session ticket received")
-    if args.session_ticket:
-        with open(args.session_ticket, "wb") as fp:
-            pickle.dump(ticket, fp)
 
 
-async def run(
-    configuration: QuicConfiguration,
-    urls: List[str],
-    data: str,
-    include: bool,
-    legacy_quic: bool,
-    output_dir: Optional[str],
-    local_port: int,
-    zero_rtt: bool,
-    session_ticket: Optional[str],
+async def initiate_player_event(configuration: QuicConfiguration, args) -> None:
+    # set rules ['bola', 'mpc']
 
-) -> None:
-    parsed = urlparse(urls[0])
-    assert parsed.scheme in (
-        "https",
-        "quic",
-    ), "Only https:// or quic:// URLs are supported."
-    if ":" in parsed.netloc:
-        host, port_str = parsed.netloc.split(":")
-        port = int(port_str)
-    else:
-        host = parsed.netloc
-        port = 443
+    dc = DashClient(configuration, args)
 
-    if session_ticket is not None:
-        session_ticket = save_session_ticket
-    else:
-        session_ticket = None
-
-    if legacy_quic is True:
-        async with connect(
-            host, port,
-            configuration=configuration,
-            create_protocol=QuicClient,
-            wait_connected=not zero_rtt,
-        ) as client:
-            client = cast(QuicClient, client)
-            logger.info("sending quic ack")
-            await client.quic_datagram_send()
-            logger.info("recieved quic ack")
-            logger.info("sending quic data in stream")
-            for i in range(5):
-                await client.quic_stream_send()
-            logger.info("recieved quic data in stream")
-    else:
-        async with connect(
-            host,
-            port,
-            configuration=configuration,
-            create_protocol=HttpClient,
-            session_ticket_handler=session_ticket,
-            local_port=local_port,
-            wait_connected=not zero_rtt,
-        ) as client:
-            client = cast(HttpClient, client)
-
-            coros = [
-                perform_http_request(
-                    client=client,
-                    url=url,
-                    data=data,
-                    include=include,
-                    output_dir = output_dir,
-                )
-                for url in urls
-            ]
-            await asyncio.gather(*coros)
+    await dc.play()
 
 
 
@@ -114,7 +41,7 @@ if __name__ == "__main__":
     defaults = QuicConfiguration(is_client=True)
     parser = argparse.ArgumentParser(description="The player, A streaming client supporting multiple ABR options and both QUIC and HTTP/3 support")
     parser.add_argument(
-        "url", type=str, nargs="+", help="the URL to query (must be HTTPS)"
+        "--urls", type=str, nargs="+", help="the URL to query (must be HTTPS)"
     )
     parser.add_argument(
         "--manifest-file", type=str, help="Path to the custom manifest file"
@@ -185,6 +112,9 @@ if __name__ == "__main__":
         level=logging.DEBUG if args.verbose else logging.INFO,
     )
 
+    if args.urls is None:
+        logger.info("URL to download is provided by the dash client directly")
+
     if args.output_dir is not None and not os.path.isdir(args.output_dir):
         raise Exception("%s is not a directory" % args.output_dir)
     elif args.output_dir is None:
@@ -225,17 +155,7 @@ if __name__ == "__main__":
         uvloop.install()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
-        run(
-            configuration=configuration,
-            urls=args.url,
-            data=args.data,
-            include=args.include,
-            legacy_quic=args.legacy_quic,
-            output_dir=args.output_dir,
-            local_port=args.local_port,
-            zero_rtt=args.zero_rtt,
-            session_ticket=args.session_ticket,
-        )
+        initiate_player_event(configuration=configuration, args=args)
     )
 
     # a = mpc.MPC(manifest)
