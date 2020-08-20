@@ -46,12 +46,10 @@ def get_segment_size(output_dir: Optional[str]):
     return segment_size_list
 
 
-def check_and_create(dir_path, output_dir: Optional[str]):
-    if output_dir is not None:
-        dir_path = output_dir + dir_path
-    # else:
-    #     dir_path = os.getcwd() + '/' + dir_path
-    
+def check_and_create(dir_path):
+    if dir_path.startswith(prefix):
+        dir_path = os.getcwd() + '/' + dir_path
+
     print ("Checking: %s" % dir_path)
     if not os.path.isdir(dir_path):
         print ('Destination directory: %s does not exist, creating one' % dir_path)
@@ -59,8 +57,7 @@ def check_and_create(dir_path, output_dir: Optional[str]):
     else:
         print ('Found directory: %s ' % dir_path)
 
-# TODO: The destination needs to be prepared well before passing into check_and_create().
-# passing none doesnt make sense.
+
 def encode(idx, output_dir: Optional[str]):
     quality = resolutions[idx].split('x')[1]
     destination = ( prefix if prefix else '' ) + '%s/bbb_%s_%s.mp4' % (quality, quality, framerate)
@@ -69,7 +66,7 @@ def encode(idx, output_dir: Optional[str]):
     print('dest: {}'.format(destination))
     dst_dir = destination.rsplit('/', 1)[0]
     if dst_dir:
-        check_and_create(dst_dir, None)
+        check_and_create(dst_dir)
     
     cmd = "ffmpeg -i " + source + " -vf scale=" + resolutions[idx] + " -b:v " + str(bitrates[idx]) + "M -bufsize " + str(bitrates[idx]/2) + "M -c:v libx264 -x264opts 'keyint=60:min-keyint=60:no-scenecut' -c:a copy " + destination
     print("Encoding %s: " % cmd)
@@ -107,7 +104,7 @@ def main_segmentize(output_dir: Optional[str]):
         quality = resolution.split('x')[1]
         in_source = ('%s%s/bbb_%s_%s.mp4' % (output_dir, quality, quality, framerate))
 
-        check_and_create('%s%s/out/' % (output_dir, quality), None)
+        check_and_create('%s%s/out/' % (output_dir, quality))
         out_dir = '%s%s/out/' % (output_dir, quality)
         segmentize(in_source, out_dir, quality)
 
@@ -176,8 +173,9 @@ def main():
     if args.input:
         source = args.input 
 
-    if not args.output_dir.endswith('/'):
-        args.output_dir = args.output_dir + '/'
+    if args.output_dir:
+        if not args.output_dir.endswith('/'):
+            args.output_dir = args.output_dir + '/'
 
     if args.fps:
         framerate = args.fps
@@ -194,9 +192,15 @@ def main():
     )
 
     logging.debug("input: " + args.input + ", datetime: " + str(datetime.datetime.now()))
-    check_and_create(prefix, args.output_dir)
 
-    logging.info('Running "%s" script with arguemnts: prefix(%s) source(%s) fps(%s)' % (args.action, prefix, source, framerate))
+    if args.output_dir is not None:
+        directory_path = args.output_dir + prefix
+    else:
+        directory_path = prefix
+
+    check_and_create(directory_path)
+
+    logging.info('Running "%s" script with arguemnts: prefix(%s) source(%s) fps(%s)' % (args.action, directory_path, source, framerate))
 
     if args.action == 'segmentation':
         main_segmentize(args.output_dir)
