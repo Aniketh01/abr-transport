@@ -8,11 +8,9 @@ from glob import glob
 import os
 from threading import Thread
 from subprocess import call
+from typing import Optional
 
 start_time = time.time()
-
-logging.basicConfig(filename='manifest_creation-' +
-                    str(start_time) + '.log', level=logging.DEBUG)
 
 source = 'Big_Buck_Bunny_1080_10s_20MB.mp4'
 prefix = 'dash/'
@@ -22,6 +20,7 @@ frame_type = {'I-Frame': 'PICT_TYPE_I', 'P-Frame': 'PICT_TYPE_P', 'B-Frame': 'PI
 resolutions=['640x360', '854x480', '1280x720', '1920x1080']#, '2560x1440']
 bitrates=[1.5, 4, 7.5, 12]#, 24]
 
+#TODO: Check for "/" in the input output_dir parameter before taking in and reduce the check inside the functions.
 
 def load_json(path):
     with open(path) as file:
@@ -29,13 +28,17 @@ def load_json(path):
     return obj
 
 
-def get_segment_size():
+def get_segment_size(output_dir: Optional[str]):
     segment_size_list = []
+    if output_dir is None:
+        output_dir = prefix
+    else:
+        output_dir = output_dir + "/" + prefix
 
     for idx in range(len(resolutions)):
         sg_size_res = []
         quality = resolutions[idx].split('x')[1]
-        destination = ( prefix if prefix else '' ) + '%s/out/' % (quality)
+        destination = ( output_dir if output_dir else '' ) + '%s/out/' % (quality)
         files = glob(destination + '/*')
         for file in files:
             size = os.path.getsize(file)
@@ -45,8 +48,12 @@ def get_segment_size():
     return segment_size_list
 
 
-def check_and_create(dir_path):
-    dir_path = os.getcwd() + '/' + dir_path
+def check_and_create(dir_path, output_dir: Optional[str]):
+    if output_dir is not None:
+        dir_path = output_dir + "/" + dir_path
+    # else:
+    #     dir_path = os.getcwd() + '/' + dir_path
+    
     print ("Checking: %s" % dir_path)
     if not os.path.isdir(dir_path):
         print ('Destination directory: %s does not exist, creating one' % dir_path)
@@ -54,25 +61,27 @@ def check_and_create(dir_path):
     else:
         print ('Found directory: %s ' % dir_path)
 
-def encode(idx):
-	quality = resolutions[idx].split('x')[1]
-	destination = ( prefix if prefix else '' ) + '%s/bbb_%s_%s.mp4' % (quality, quality, framerate)
-	print ('dest: %s' % destination)
-	dst_dir = destination.rsplit('/', 1)[0]
-	if dst_dir:
-		check_and_create(dst_dir)
+# TODO: The destination needs to be prepared well before passing into check_and_create().
+# passing none doesnt make sense.
+def encode(idx, output_dir: Optional[str]):
+    quality = resolutions[idx].split('x')[1]
+    destination = ( prefix if prefix else '' ) + '%s/bbb_%s_%s.mp4' % (quality, quality, framerate)
+    if output_dir is not None:
+        destination = output_dir + '/' + destination
+    print('dest: {}'.format(destination))
+    dst_dir = destination.rsplit('/', 1)[0]
+    if dst_dir:
+        check_and_create(dst_dir, None)
+    
+    cmd = "ffmpeg -i " + source + " -vf scale=" + resolutions[idx] + " -b:v " + str(bitrates[idx]) + "M -bufsize " + str(bitrates[idx]/2) + "M -c:v libx264 -x264opts 'keyint=60:min-keyint=60:no-scenecut' -c:a copy " + destination
+    print("Encoding %s: " % cmd)
+    os.system(cmd)
+    print ('Done encoding %sp' % quality) 
 
-	#print("ffmpeg -i " + source + " -vf scale=" + resolutions[idx] + "
-	cmd = "ffmpeg -i " + source + " -vf scale=" + resolutions[idx] + " -b:v " + str(bitrates[idx]) + "M -bufsize " + str(bitrates[idx]/2) + "M -c:v libx264 -x264opts 'keyint=60:min-keyint=60:no-scenecut' -c:a copy " + destination
-	print("Encoding %s: " % cmd)
-	os.system(cmd)
-
-	print ('Done encoding %sp' % quality) 
-
-def main_encode():
+def main_encode(output_dir: Optional[str]):
 	for i in range(len(resolutions)):
 		print('Starting %s thread' % resolutions[i])
-		t = Thread(target=encode, args=(i,))
+		t = Thread(target=encode, args=(i,output_dir,))
 		t.start()
 
 	print ('Started all threads')
@@ -90,18 +99,25 @@ def segmentize(in_source, dst_dir, quality):
     call(["./decode_frame", in_source, dst_dir, quality])
 
 
-# Assumes script is ran within the video roots direcoty
-def main_segmentize():
+def main_segmentize(output_dir: Optional[str]):
+    if output_dir is None:
+        output_dir = prefix
+    else:
+        output_dir = output_dir + "/" + prefix
+
     for resolution in resolutions:
         quality = resolution.split('x')[1]
-        #dst = res + '/out'
-        in_source = ('%s%s/bbb_%s_%s.mp4' % (prefix, quality, quality, framerate))
-        check_and_create('%s%s/out/' % (prefix, quality))
-        out_dir = '%s%s/out/' % (prefix, quality)
+        in_source = ('%s%s/bbb_%s_%s.mp4' % (output_dir, quality, quality, framerate))
+
+        check_and_create('%s%s/out/' % (output_dir, quality), None)
+        out_dir = '%s%s/out/' % (output_dir, quality)
         segmentize(in_source, out_dir, quality)
 
 
-def prepare_mpd(seg_duration):
+def prepare_mpd(seg_duration, output_dir: Optional[str]):
+    if seg_duration is None:
+        seg_duration = 1
+
     bitrates_kbps = []
     resolution = []
     for b in bitrates:
@@ -110,11 +126,10 @@ def prepare_mpd(seg_duration):
     for res in resolutions:
         resolution.append(res.split('x')[1])
 
-    seg_size = get_segment_size()
+    seg_size = get_segment_size(output_dir)
     seg_size= list(map(list, zip(*seg_size)))
 
     manifest = {
-        #"Segment_duration_ms": 10000,
         "segment_duration_ms": seg_duration,
         "total_segments": len(seg_size),
         "total_representation": len(bitrates_kbps) ,
@@ -123,7 +138,12 @@ def prepare_mpd(seg_duration):
         "segment_size_bytes": seg_size
     }
 
-    with open('bbb_m.json', 'w') as f:
+    if output_dir is not None:
+        filename = output_dir + '/' + 'bbb_m.json'
+    else:
+        filename = 'bbb_m.json'
+
+    with open(filename, 'w') as f:
         json.dump(manifest, f, indent=4)
 
 
@@ -135,6 +155,12 @@ def main():
     parser.add_argument('--fps', help="Frames per second to use for re-encoding")
     parser.add_argument('-i', '--input',
                         help='The path to the video file (required).')
+    parser.add_argument(
+        "--output-dir", type=str, help="write encoded/segemented/manifest file to a specific destination",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="increase logging verbosity"
+    )
     args = parser.parse_args()
 
     global prefix
@@ -155,17 +181,28 @@ def main():
     if args.fps:
         framerate = args.fps
 
+    if args.verbose:
+        log_event = 'manifest_creation-' + str(start_time) + '.log'
+    else:
+        log_event = None
+
+    logging.basicConfig(
+        filename=log_event,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        level=logging.DEBUG if args.verbose else logging.INFO,
+    )
 
     logging.debug("input: " + args.input + ", datetime: " + str(datetime.datetime.now()))
-    check_and_create(prefix)
+    check_and_create(prefix, args.output_dir)
 
-    print ('Running "%s" script with arguemnts: prefix(%s) source(%s) fps(%s)' % (args.action, prefix, source, framerate))
+    logging.info('Running "%s" script with arguemnts: prefix(%s) source(%s) fps(%s)' % (args.action, prefix, source, framerate))
+
     if args.action == 'segmentation':
-        main_segmentize()
+        main_segmentize(args.output_dir)
     elif args.action == 'encode':
-        main_encode()
+        main_encode(args.output_dir)
     elif args.action == 'mpd':
-        prepare_mpd(args.seg_duration)
+        prepare_mpd(args.seg_duration, args.output_dir)
     else:
         print("Unknown action requested. Specify one of: truncate, encode")
 
