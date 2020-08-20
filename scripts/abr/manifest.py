@@ -109,9 +109,11 @@ def main_segmentize(output_dir: Optional[str]):
         segmentize(in_source, out_dir, quality)
 
 
-def prepare_mpd(seg_duration, output_dir: Optional[str]):
+def prepare_mpd(seg_duration: int, start_number: int, output_dir: Optional[str]) -> None:
     if seg_duration is None:
         seg_duration = 1
+    if start_number is None:
+        start_number = 0
 
     bitrates_kbps = []
     resolution = []
@@ -126,6 +128,7 @@ def prepare_mpd(seg_duration, output_dir: Optional[str]):
 
     manifest = {
         "segment_duration_ms": seg_duration,
+        "start_number": start_number,
         "total_segments": len(seg_size),
         "total_representation": len(bitrates_kbps) ,
         "bitrates_kbps": bitrates_kbps,
@@ -146,6 +149,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', '-p', help='Prefix')
     parser.add_argument('--seg_duration', '-sd', help='segment duration')
+    parser.add_argument('--start_number', '-sn', help='Start number')
     parser.add_argument('--action', required=True, help='Action to be performed by the script. Possible actions are: encode, segmentation, mpd')
     parser.add_argument('--fps', help="Frames per second to use for re-encoding")
     parser.add_argument('-i', '--input',
@@ -200,16 +204,16 @@ def main():
 
     check_and_create(directory_path)
 
-    logging.info('Running "%s" script with arguemnts: prefix(%s) source(%s) fps(%s)' % (args.action, directory_path, source, framerate))
+    logging.info('Running "%s" script with arguments: prefix(%s) source(%s) fps(%s)' % (args.action, directory_path, source, framerate))
 
     if args.action == 'segmentation':
         main_segmentize(args.output_dir)
     elif args.action == 'encode':
         main_encode(args.output_dir)
     elif args.action == 'mpd':
-        prepare_mpd(args.seg_duration, args.output_dir)
+        prepare_mpd(args.seg_duration, args.start_number, args.output_dir)
     else:
-        print("Unknown action requested. Specify one of: truncate, encode")
+        print("Unknown action requested. Specify one of: encode, segmentation, mpd")
 
 
 if __name__ == "__main__":
