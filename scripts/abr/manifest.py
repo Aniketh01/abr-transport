@@ -20,8 +20,6 @@ frame_type = {'I-Frame': 'PICT_TYPE_I', 'P-Frame': 'PICT_TYPE_P', 'B-Frame': 'PI
 resolutions=['640x360', '854x480', '1280x720', '1920x1080']#, '2560x1440']
 bitrates=[1.5, 4, 7.5, 12]#, 24]
 
-#TODO: Check for "/" in the input output_dir parameter before taking in and reduce the check inside the functions.
-
 def load_json(path):
     with open(path) as file:
         obj = json.load(file)
@@ -33,7 +31,7 @@ def get_segment_size(output_dir: Optional[str]):
     if output_dir is None:
         output_dir = prefix
     else:
-        output_dir = output_dir + "/" + prefix
+        output_dir = output_dir + prefix
 
     for idx in range(len(resolutions)):
         sg_size_res = []
@@ -50,7 +48,7 @@ def get_segment_size(output_dir: Optional[str]):
 
 def check_and_create(dir_path, output_dir: Optional[str]):
     if output_dir is not None:
-        dir_path = output_dir + "/" + dir_path
+        dir_path = output_dir + dir_path
     # else:
     #     dir_path = os.getcwd() + '/' + dir_path
     
@@ -67,7 +65,7 @@ def encode(idx, output_dir: Optional[str]):
     quality = resolutions[idx].split('x')[1]
     destination = ( prefix if prefix else '' ) + '%s/bbb_%s_%s.mp4' % (quality, quality, framerate)
     if output_dir is not None:
-        destination = output_dir + '/' + destination
+        destination = output_dir + destination
     print('dest: {}'.format(destination))
     dst_dir = destination.rsplit('/', 1)[0]
     if dst_dir:
@@ -103,7 +101,7 @@ def main_segmentize(output_dir: Optional[str]):
     if output_dir is None:
         output_dir = prefix
     else:
-        output_dir = output_dir + "/" + prefix
+        output_dir = output_dir + prefix
 
     for resolution in resolutions:
         quality = resolution.split('x')[1]
@@ -139,7 +137,7 @@ def prepare_mpd(seg_duration, output_dir: Optional[str]):
     }
 
     if output_dir is not None:
-        filename = output_dir + '/' + 'bbb_m.json'
+        filename = output_dir + 'bbb_m.json'
     else:
         filename = 'bbb_m.json'
 
@@ -177,6 +175,9 @@ def main():
     
     if args.input:
         source = args.input 
+
+    if not args.output_dir.endswith('/'):
+        args.output_dir = args.output_dir + '/'
 
     if args.fps:
         framerate = args.fps
