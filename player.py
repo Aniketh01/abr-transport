@@ -105,6 +105,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="increase logging verbosity"
     )
+
+    # Start of ABR/streaming related config parameters
+    parser.add_argument("-b", "--buffer-size", action="store",
+						default=60, help="Buffer size for video playback")
+    parser.add_argument("--abr", "--abr", action="store", 
+						default="tputRule", help="ABR rule to download video")
+
     args = parser.parse_args()
 
     logging.basicConfig(
