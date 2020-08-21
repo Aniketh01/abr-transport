@@ -1,4 +1,4 @@
-from .abr import abr
+from .abr import BasicABR
 import json
 
 import math
@@ -9,7 +9,7 @@ file_sizes = [691.215, 1229.775, 2764.816, 6220.817]
 MINIMUM_SAFE_BUFFER = 10
 MAXIMUM_TARGET_BUFFER = 30
 
-class Bola(abr):
+class Bola(BasicABR):
     def __init__(self, manifestData):
         super(Bola, self).__init__(manifestData)
         self.manifestData = manifestData

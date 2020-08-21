@@ -1,4 +1,4 @@
-from .abr import abr
+from .abr import BasicABR
 # import json
 
 BBA2_STEADY_STATE = 'steady'
@@ -6,7 +6,7 @@ BBA2_STARTUP_STATE = 'startup'
 X = 60
 
 
-class BBA2(abr):
+class BBA2(BasicABR):
     def __init__(self, manifestData):
         super(BBA2, self).__init__(manifestData)
         self.reservoir = 8

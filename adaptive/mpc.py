@@ -1,4 +1,4 @@
-from .abr import abr
+from .abr import BasicABR
 
 import itertools
 import json
@@ -16,7 +16,7 @@ bitrate_combination = list(itertools.product(range(4), repeat = look_ahead_segme
 LAMBDA = 1
 MU = MUs = 3000
 
-class MPC(abr):
+class MPC(BasicABR):
     def __init__(self, manifestData):
         super(MPC, self).__init__(manifestData)
         self.prev_tput_pred = []

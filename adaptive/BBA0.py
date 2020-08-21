@@ -1,9 +1,9 @@
-from .abr import abr
+from .abr import BasicABR
 import json
 
-class BBA(abr):
+class BBA0(BasicABR):
     def __init__(self, manifestData):
-        super(BBA, self).__init__(manifestData)
+        super(BBA0, self).__init__(manifestData)
         self.reservoir = 8
         self.cushion = 46
         self.ratePrev = 0
@@ -78,9 +78,9 @@ class BBA(abr):
         return self.GetCorrespondingQualityIndex(rateNext)
 
 
-if __name__ == "__main__":
-    f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
-    manifest = json.load(f)
-    a = BBA(manifest)
-    q = a.NextSegmentQualityIndex(60)
-    print(q)
+# if __name__ == "__main__":
+#     f = open("/home/aniketh/devel/src/abr-over-quic/src/bbb_m.json")
+#     manifest = json.load(f)
+#     a = BBA(manifest)
+#     q = a.NextSegmentQualityIndex(60)
+#     print(q)

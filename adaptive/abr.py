@@ -2,7 +2,7 @@
 # This class implements basic throughput rule
 
 
-class abr:
+class BasicABR:
     def __init__(self, manifestData):
         self.manifestData = manifestData
 
