@@ -109,16 +109,29 @@ def main_segmentize(output_dir: Optional[str]):
         segmentize(in_source, out_dir, quality)
 
 
-def prepare_mpd(seg_duration: int, start_number: int, output_dir: Optional[str]) -> None:
+def prepare_mpd(
+    total_duration: int,
+    seg_duration: int,
+    start_number: int,
+    total_representation: int,
+    output_dir: Optional[str]
+) -> None:
+    # NOTE: seg_duration in ms
+    # NOTE: total_duration in s
     if seg_duration is None:
         seg_duration = 1
     if start_number is None:
         start_number = 0
+    if total_duration is None:
+        total_duration = 10
 
     bitrates_kbps = []
     resolution = []
     for b in bitrates:
         bitrates_kbps.append(b*1000)
+
+    if total_representation is None:
+        total_representation = len(bitrates_kbps)
 
     for res in resolutions:
         resolution.append(res.split('x')[1])
@@ -129,8 +142,9 @@ def prepare_mpd(seg_duration: int, start_number: int, output_dir: Optional[str])
     manifest = {
         "segment_duration_ms": seg_duration,
         "start_number": start_number,
+        "total_duration": total_duration,
         "total_segments": len(seg_size),
-        "total_representation": len(bitrates_kbps) ,
+        "total_representation": total_representation,
         "bitrates_kbps": bitrates_kbps,
         "resolutions": resolution,
         "segment_size_bytes": seg_size
@@ -148,8 +162,10 @@ def prepare_mpd(seg_duration: int, start_number: int, output_dir: Optional[str])
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', '-p', help='Prefix')
-    parser.add_argument('--seg_duration', '-sd', help='segment duration')
+    parser.add_argument('--seg_duration', '-sd', help='segment duration in ms')
     parser.add_argument('--start_number', '-sn', help='Start number')
+    parser.add_argument('--total_duration', '-td', help='Total duration in seconds')
+    parser.add_argument('--total_representation', '-tr', help='Total number of representation')
     parser.add_argument('--action', required=True, help='Action to be performed by the script. Possible actions are: encode, segmentation, mpd')
     parser.add_argument('--fps', help="Frames per second to use for re-encoding")
     parser.add_argument('-i', '--input',
@@ -211,7 +227,12 @@ def main():
     elif args.action == 'encode':
         main_encode(args.output_dir)
     elif args.action == 'mpd':
-        prepare_mpd(args.seg_duration, args.start_number, args.output_dir)
+        prepare_mpd(args.total_duration,
+                    args.seg_duration,
+                    args.start_number,
+                    args.total_representation,
+                    args.output_dir
+        )
     else:
         print("Unknown action requested. Specify one of: encode, segmentation, mpd")
 
