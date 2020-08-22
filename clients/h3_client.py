@@ -178,4 +178,4 @@ async def perform_http_request(
                 elif isinstance(http_event, DataReceived):
                     output_file.write(http_event.data)
 
-    return octets, tput
+    return octets, tput, elapsed
