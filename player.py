@@ -1,12 +1,15 @@
 import asyncio
 import json
 import ssl
+import time
 import os
 import argparse
 import pickle
 import logging
 from typing import Deque, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
+
+from pprint import pprint
 
 try:
     import uvloop
@@ -33,7 +36,15 @@ async def initiate_player_event(configuration: QuicConfiguration, args) -> None:
 
     dc = DashClient(configuration, args)
 
+    start = time.time()
     await dc.play()
+    elapsed = time.time() - start
+
+    dc.perf_parameters['total_time_elapsed'] = elapsed
+
+    print("aniketh init player")
+    print(elapsed)
+    pprint(dc.perf_parameters)
 
 
 

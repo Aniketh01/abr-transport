@@ -67,11 +67,13 @@ class DashClient:
 		self.abr_algorithm = None
 
 		self.lastDownloadSize = 0
-
+		self.lastDownloadTime = 0
 		self.segmentQueue = Queue(maxsize=0)
 		self.frameQueue = Queue(maxsize=0)
 
 		self.perf_parameters = {}
+		self.perf_parameters['startup_delay'] = 0
+		self.perf_parameters['total_time_elapsed'] = 0
 		self.perf_parameters['bitrate_change'] = []
 		self.perf_parameters['prev_rate'] = 0
 		self.perf_parameters['change_count'] = 0
@@ -89,6 +91,7 @@ class DashClient:
 		self.manifest_data = json.load(open(".cache/" + self.filename))
 		self.lastDownloadSize = res[0][0]
 		self.latest_tput = res[0][1]
+		self.lastDownloadTime = res[0][2]
 
 	async def dash_client_set_config(self) -> None:
 		await self.download_manifest()
@@ -99,9 +102,24 @@ class DashClient:
 	def getTotalSegments(self):
 		return self.manifest_data['total_segments']
 
+	def getDuration(self):
+		return self.manifest_data['total_duration']
+
+	def getCorrespondingBitrateIndex(self, bitrate):
+		for i, b in enumerate(self.manifest_data['bitrates_kbps']):
+			if b == bitrate:
+				return i + 1
+		return -1
+
 	def latest_segment_Throughput_kbps(self):
 		# returns throughput value of last segment downloaded in kbps
 		return self.latest_tput
+	
+	def fetchNextSegment(self, bitrate = 0):
+		pass
+
+	async def download_segment(self):
+		pass
 
 	async def play(self) -> None:
 		await self.dash_client_set_config()
