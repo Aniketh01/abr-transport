@@ -37,7 +37,7 @@ async def initiate_player_event(configuration: QuicConfiguration, args) -> None:
     dc = DashClient(configuration, args)
 
     start = time.time()
-    await dc.play()
+    await dc.player()
     elapsed = time.time() - start
 
     dc.perf_parameters['total_time_elapsed'] = elapsed

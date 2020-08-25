@@ -62,6 +62,8 @@ class DashClient:
 		self.args = args
 		self.manifest_data = None
 		self.latest_tput = 0
+
+		self.lock = asyncio.Lock()
 		self.totalBuffer = args.buffer_size
 		self.currBuffer = 0
 		self.abr_algorithm = None
@@ -118,13 +120,32 @@ class DashClient:
 	def fetchNextSegment(self, bitrate = 0):
 		pass
 
+	
 	async def download_segment(self):
 		pass
 
-	async def play(self) -> None:
+	#emulate playback of frame scenario
+	async def playback_frames(self) -> None:
+		pass
+
+	#emulate decoding the frame scenario
+	async def decode_frames(self) -> None:
+		pass
+
+	async def player(self) -> None:
 		await self.dash_client_set_config()
-		print(self.totalSegments)
-		print(self.abr_algorithm)
+
+		#TODO: Design choice: should player handle downloading the manifest?
+		#TODO: download the segments
+		#TODO: decode the segements
+		#TODO: play back the segments
+		await self.download_segment()
+		await self.decode_frames()
+		await self.playback_frames()
+
+		self.perf_parameters['avg_bitrate'] /= self.totalSegments
+		self.perf_parameters['avg_bitrate_change'] /= (self.totalSegments - 1)
+
 		# print(self.manifest_data)
 		# print(self.args.urls)
 		# print(self.baseUrl)
