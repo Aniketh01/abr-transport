@@ -109,7 +109,7 @@ class DashClient:
 	async def dash_client_set_config(self) -> None:
 		await self.download_manifest()
 		self.abr_algorithm = select_abr_algorithm(self.manifest_data, self.args)
-		self.currentSegment = self.manifest_data['start_number'] - 1
+		self.currentSegment = self.manifest_data['start_number']
 		self.totalSegments = self.getTotalSegments()
 
 	def getTotalSegments(self):
@@ -136,7 +136,7 @@ class DashClient:
 
 		for i, b in enumerate(self.manifest_data['bitrates_kbps']):
 			if b == bitrate:
-				segment_Duration = self.manifest_data['segment_duration_ms'] / self.manifest_data['timescale']
+				segment_Duration = int(self.manifest_data['segment_duration_ms']) / int(self.manifest_data['timescale'])
 				break
 
 		for fname in sorted(glob(segment_list)):
@@ -176,11 +176,12 @@ class DashClient:
 
 	async def download_segment(self) -> None:
 		if config.NUM_SERVER_PUSHED_FRAMES is not None:
-			next_segment_idx = config.NUM_SERVER_PUSHED_FRAMES + 1
+			self.currentSegment = config.NUM_SERVER_PUSHED_FRAMES + 1
 		else:
-			next_segment_idx = 1
+			self.currentSegment += 1
 
-		while self.currentSegment + 1 < self.totalSegments:
+		while self.currentSegment < self.totalSegments:
+			print(self.currentSegment)
 			async with self.lock:
 				currBuff = self.currBuffer
 			segment_Duration = int(self.manifest_data['segment_duration_ms']) / int(self.manifest_data['timescale'])
@@ -192,15 +193,13 @@ class DashClient:
 
 			if self.totalBuffer - currBuff >= segment_Duration:
 				rateNext = self.abr_algorithm.NextSegmentQualityIndex(playback_stats)
-				while next_segment_idx <= len(self.manifest_data['segment_size_bytes']):
-					segment_resolution = self.manifest_data['resolutions'][rateNext]
-					fName = "htdocs/dash/" + segment_resolution + "/out/frame-" + str(next_segment_idx) + "-" + segment_resolution + "-*"
-					if await self.fetchNextSegment(fName, rateNext):
-						dp = segment_download_info(self.manifest_data, self.segment_baseName, self.lastDownloadSize, next_segment_idx, self.args.urls, rateNext, segment_resolution, self.lastDownloadTime)
-						pprint(dp)
-					else:
-						break
-					next_segment_idx += 1
+				segment_resolution = self.manifest_data['resolutions'][rateNext]
+				fName = "htdocs/dash/" + segment_resolution + "/out/frame-" + str(self.currentSegment) + "-" + segment_resolution + "-*"
+				if await self.fetchNextSegment(fName, rateNext):
+					dp = segment_download_info(self.manifest_data, self.segment_baseName, self.lastDownloadSize, self.currentSegment, self.args.urls, rateNext, segment_resolution, self.lastDownloadTime)
+					pprint(dp)
+				else:
+					break
 			else:
 				time.sleep(0.5)
 		self.segmentQueue.put("done")
