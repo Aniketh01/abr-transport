@@ -1,7 +1,8 @@
 {
-    "segment_duration_ms": "1",
     "start_number": 0,
+    "segment_duration_ms": "1",
     "total_duration": 10,
+    "timescale": 1,
     "total_segments": 298,
     "total_representation": 4,
     "bitrates_kbps": [

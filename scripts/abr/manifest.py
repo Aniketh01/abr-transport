@@ -114,6 +114,7 @@ def prepare_mpd(
     seg_duration: int,
     start_number: int,
     total_representation: int,
+    timescale: int,
     output_dir: Optional[str]
 ) -> None:
     # NOTE: seg_duration in ms
@@ -124,6 +125,8 @@ def prepare_mpd(
         start_number = 0
     if total_duration is None:
         total_duration = 10
+    if timescale is None:
+        timescale = 1
 
     bitrates_kbps = []
     resolution = []
@@ -140,9 +143,10 @@ def prepare_mpd(
     seg_size= list(map(list, zip(*seg_size)))
 
     manifest = {
-        "segment_duration_ms": seg_duration,
         "start_number": start_number,
+        "segment_duration_ms": seg_duration,
         "total_duration": total_duration,
+        "timescale": timescale,
         "total_segments": len(seg_size),
         "total_representation": total_representation,
         "bitrates_kbps": bitrates_kbps,
@@ -165,6 +169,7 @@ def main():
     parser.add_argument('--seg_duration', '-sd', help='segment duration in ms')
     parser.add_argument('--start_number', '-sn', help='Start number')
     parser.add_argument('--total_duration', '-td', help='Total duration in seconds')
+    parser.add_argument('--timescale', '-ts', help='Timescale is time in ms')
     parser.add_argument('--total_representation', '-tr', help='Total number of representation')
     parser.add_argument('--action', required=True, help='Action to be performed by the script. Possible actions are: encode, segmentation, mpd')
     parser.add_argument('--fps', help="Frames per second to use for re-encoding")
@@ -231,6 +236,7 @@ def main():
                     args.seg_duration,
                     args.start_number,
                     args.total_representation,
+                    args.timescale,
                     args.output_dir
         )
     else:
