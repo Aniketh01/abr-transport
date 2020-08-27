@@ -9,7 +9,7 @@ import logging
 from typing import Deque, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
 
-from pprint import pprint
+from pprint import pformat
 
 try:
     import uvloop
@@ -42,9 +42,8 @@ async def initiate_player_event(configuration: QuicConfiguration, args) -> None:
 
     dc.perf_parameters['total_time_elapsed'] = elapsed
 
-    print("aniketh init player")
-    print(elapsed)
-    pprint(dc.perf_parameters)
+    logger.info("Playback completed")
+    logger.info(pformat(dc.perf_parameters))
 
 
 

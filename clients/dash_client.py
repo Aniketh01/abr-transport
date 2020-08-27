@@ -1,9 +1,10 @@
 import asyncio
+import logging
 import json
 import time
 import os
 from glob import glob
-from pprint import pprint
+from pprint import pformat
 
 from collections import namedtuple
 from queue import Queue
@@ -19,6 +20,8 @@ from adaptive.BBA2 import BBA2
 from clients.build import run
 
 import config
+
+logger = logging.getLogger("DASH client")
 
 adaptiveInfo = namedtuple("AdaptiveInfo",
                           'segment_time bitrates segments')
@@ -184,6 +187,7 @@ class DashClient:
 			print(self.currentSegment)
 			async with self.lock:
 				currBuff = self.currBuffer
+
 			segment_Duration = int(self.manifest_data['segment_duration_ms']) / int(self.manifest_data['timescale'])
 
 			playback_stats = {}
@@ -191,44 +195,67 @@ class DashClient:
 			playback_stats["currBuffer"] = currBuff
 			playback_stats["segment_Idx"] = self.currentSegment + 1
 
+			logger.info(pformat(playback_stats))
+
 			if self.totalBuffer - currBuff >= segment_Duration:
 				rateNext = self.abr_algorithm.NextSegmentQualityIndex(playback_stats)
 				segment_resolution = self.manifest_data['resolutions'][rateNext]
 				fName = "htdocs/dash/" + segment_resolution + "/out/frame-" + str(self.currentSegment) + "-" + segment_resolution + "-*"
 				if await self.fetchNextSegment(fName, rateNext):
 					dp = segment_download_info(self.manifest_data, self.segment_baseName, self.lastDownloadSize, self.currentSegment, self.args.urls, rateNext, segment_resolution, self.lastDownloadTime)
-					pprint(dp)
+					logger.info(dp)
 				else:
 					break
 			else:
 				time.sleep(0.5)
-		self.segmentQueue.put("done")
-
+		self.segmentQueue.put("Download complete")
+		logger.info("All the segments have been downloaded")
 
 	#emulate playback of frame scenario
 	async def playback_frames(self) -> None:
-		print("playback seg")
+		#Flag to mark whether placback has started or not.
+		has_playback_started = False
+		while True:
+			rebuffer_start = time.time()
+			frame = self.frameQueue.get()
+			rebuffer_elapsed = time.time() - rebuffer_start
+
+			if frame == "Decoding complete":
+				logger.info("All the segments have been played back")
+				break
+
+			if not has_playback_started:
+				has_playback_started = True
+				self.perf_parameters['startup_delay'] = time.time()
+			else:
+				self.perf_parameters['rebuffer_time'] += rebuffer_elapsed
+
+			if rebuffer_elapsed > 0.0001:
+				print('rebuffer_time:{}'.format(rebuffer_elapsed))
+				self.perf_parameters['rebuffer_count'] += 1
+			async with self.lock:
+				self.currBuffer -= 2
+			logger.info("Played segments: {}".format(frame))
 
 	#emulate decoding the frame scenario
 	async def decode_frames(self) -> None:
-		print("decoding seg")
+		while not self.segmentQueue.empty():
+			segment = self.segmentQueue.get()
+			if segment == "Download complete":
+				logger.info("All the segments have been decoded")
+				self.frameQueue.put("Decoding complete")
+				break
+
+			logger.info("Decoded segments: {}".format(segment))
+			self.frameQueue.put(segment)
 
 	async def player(self) -> None:
 		await self.dash_client_set_config()
-
-		#TODO: Design choice: should player handle downloading the manifest?
-		#TODO: download the segments
-		#TODO: decode the segements
-		#TODO: play back the segments
-
-
-		tasks = [self.download_segment(), self.decode_frames(), self.playback_frames()]
-		await asyncio.gather(*tasks)
+		await self.download_segment()
+		await self.decode_frames()
+		await self.playback_frames()
+		# tasks = [self.download_segment(), self.decode_frames(), self.playback_frames()]
+		# await asyncio.gather(*tasks)
 
 		self.perf_parameters['avg_bitrate'] /= self.totalSegments
 		self.perf_parameters['avg_bitrate_change'] /= (self.totalSegments - 1)
-
-		# print(self.manifest_data)
-		# print(self.args.urls)
-		# print(self.baseUrl)
-		# print(self.filename)
