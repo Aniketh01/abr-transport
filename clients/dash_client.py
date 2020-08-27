@@ -65,7 +65,7 @@ def select_abr_algorithm(manifest_data, args):
 	elif args.abr == 'BBA2':
 		return BBA2(manifest_data)
 	else:
-		print("Error!! No right rule specified")
+		logger.error("Error!! No right rule specified")
 		return
 
 
@@ -102,6 +102,7 @@ class DashClient:
 	async def download_manifest(self) -> None:
 		#TODO: Cleanup: globally intakes a list of urls, while here
 		# we only consider a single urls per event.
+		logger.info("Downloading Manifest file")
 		res = await perform_download(self.configuration, self.args)
 		self.baseUrl, self.filename = os.path.split(self.args.urls[0])
 		self.manifest_data = json.load(open(".cache/" + self.filename))
@@ -110,6 +111,7 @@ class DashClient:
 		self.lastDownloadTime = res[0][2]
 
 	async def dash_client_set_config(self) -> None:
+		logger.info("DASH client initialization in process")
 		await self.download_manifest()
 		self.abr_algorithm = select_abr_algorithm(self.manifest_data, self.args)
 		self.currentSegment = self.manifest_data['start_number']
@@ -155,7 +157,7 @@ class DashClient:
 			self.lastDownloadSize = data
 			self.latest_tput =  res[0][1]
 
-			self.segmentQueue.put(self.segment_baseName)
+			await self.segmentQueue.put(self.segment_baseName)
 
 			# QOE parameters update
 			self.perf_parameters['bitrate_change'].append((self.currentSegment + 1,  bitrate))
@@ -173,7 +175,7 @@ class DashClient:
 
 			ret = True
 		else:
-			print("Error: downloaded segment is none!! Playback will stop shortly")
+			logger.fatal("Error: downloaded segment is none!! Playback will stop shortly")
 			ret = False
 		return ret
 
@@ -183,8 +185,7 @@ class DashClient:
 		else:
 			self.currentSegment += 1
 
-		while self.currentSegment < 14:
-			print(self.currentSegment)
+		while self.currentSegment < self.totalSegments:
 			async with self.lock:
 				currBuff = self.currBuffer
 
@@ -207,23 +208,22 @@ class DashClient:
 				else:
 					break
 			else:
-				asyncio.sleep(2)
+				asyncio.sleep(1)
 
-		self.segmentQueue.put("Download complete")
+		await self.segmentQueue.put("Download complete")
 		logger.info("All the segments have been downloaded")
 
 	#emulate playback of frame scenario
 	async def playback_frames(self) -> None:
 		#Flag to mark whether placback has started or not.
-		await asyncio.sleep(3)
 		has_playback_started = False
 		while True:
+			await asyncio.sleep(1)
 			rebuffer_start = time.time()
 			frame = await self.frameQueue.get()
 			rebuffer_elapsed = time.time() - rebuffer_start
 
 			if frame == "Decoding complete":
-				frame.task_done()
 				logger.info("All the segments have been played back")
 				break
 
@@ -234,7 +234,7 @@ class DashClient:
 				self.perf_parameters['rebuffer_time'] += rebuffer_elapsed
 
 			if rebuffer_elapsed > 0.0001:
-				print('rebuffer_time:{}'.format(rebuffer_elapsed))
+				logger.info('rebuffer_time:{}'.format(rebuffer_elapsed))
 				self.perf_parameters['rebuffer_count'] += 1
 			async with self.lock:
 				self.currBuffer -= 2
@@ -242,17 +242,16 @@ class DashClient:
 
 	#emulate decoding the frame scenario
 	async def decode_frames(self) -> None:
-		asyncio.sleep(2)
 		while True:
+			await asyncio.sleep(1)
 			segment = await self.segmentQueue.get()
 			if segment == "Download complete":
-				segment.task_done()
 				logger.info("All the segments have been decoded")
-				self.frameQueue.put("Decoding complete")
+				await self.frameQueue.put("Decoding complete")
 				break
 
 			logger.info("Decoded segments: {}".format(segment))
-			self.frameQueue.put(segment)
+			await self.frameQueue.put(segment)
 
 	async def player(self) -> None:
 		await self.dash_client_set_config()
