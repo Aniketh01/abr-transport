@@ -39,8 +39,12 @@ async def initiate_player_event(configuration: QuicConfiguration, args) -> None:
     start = time.time()
     await dc.player()
     elapsed = time.time() - start
+    
+    dc.perf_parameters['total_time_played'] = elapsed
+    dc.perf_parameters['startup_delay'] = dc.perf_parameters['startup_delay'] - start
 
-    dc.perf_parameters['total_time_elapsed'] = elapsed
+    dc.perf_parameters['MPC_QOE'] = dc.perf_parameters['avg_bitrate'] - (config.LAMBDA * dc.perf_parameters['avg_bitrate_change']) \
+									- (config.MU * dc.perf_parameters['rebuffer_time']) - (config.MU * dc.perf_parameters['startup_delay'])
 
     logger.info("Playback completed")
     logger.info(pformat(dc.perf_parameters))
