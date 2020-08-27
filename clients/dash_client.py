@@ -84,8 +84,8 @@ class DashClient:
 
 		self.lastDownloadSize = 0
 		self.lastDownloadTime = 0
-		self.segmentQueue = Queue(maxsize=0)
-		self.frameQueue = Queue(maxsize=0)
+		self.segmentQueue = asyncio.Queue()
+		self.frameQueue = asyncio.Queue()
 
 		self.perf_parameters = {}
 		self.perf_parameters['startup_delay'] = 0
@@ -183,7 +183,7 @@ class DashClient:
 		else:
 			self.currentSegment += 1
 
-		while self.currentSegment < self.totalSegments:
+		while self.currentSegment < 14:
 			print(self.currentSegment)
 			async with self.lock:
 				currBuff = self.currBuffer
@@ -207,20 +207,23 @@ class DashClient:
 				else:
 					break
 			else:
-				time.sleep(0.5)
+				asyncio.sleep(2)
+
 		self.segmentQueue.put("Download complete")
 		logger.info("All the segments have been downloaded")
 
 	#emulate playback of frame scenario
 	async def playback_frames(self) -> None:
 		#Flag to mark whether placback has started or not.
+		await asyncio.sleep(3)
 		has_playback_started = False
 		while True:
 			rebuffer_start = time.time()
-			frame = self.frameQueue.get()
+			frame = await self.frameQueue.get()
 			rebuffer_elapsed = time.time() - rebuffer_start
 
 			if frame == "Decoding complete":
+				frame.task_done()
 				logger.info("All the segments have been played back")
 				break
 
@@ -239,9 +242,11 @@ class DashClient:
 
 	#emulate decoding the frame scenario
 	async def decode_frames(self) -> None:
-		while not self.segmentQueue.empty():
-			segment = self.segmentQueue.get()
+		asyncio.sleep(2)
+		while True:
+			segment = await self.segmentQueue.get()
 			if segment == "Download complete":
+				segment.task_done()
 				logger.info("All the segments have been decoded")
 				self.frameQueue.put("Decoding complete")
 				break
@@ -251,11 +256,12 @@ class DashClient:
 
 	async def player(self) -> None:
 		await self.dash_client_set_config()
-		await self.download_segment()
-		await self.decode_frames()
-		await self.playback_frames()
-		# tasks = [self.download_segment(), self.decode_frames(), self.playback_frames()]
-		# await asyncio.gather(*tasks)
+
+		tasks = [asyncio.ensure_future(self.download_segment()),
+				asyncio.ensure_future(self.decode_frames()),
+				asyncio.ensure_future(self.playback_frames())]
+
+		await asyncio.gather(*tasks)
 
 		self.perf_parameters['avg_bitrate'] /= self.totalSegments
 		self.perf_parameters['avg_bitrate_change'] /= (self.totalSegments - 1)

@@ -39,7 +39,6 @@ async def run(
     session_ticket: Optional[str],
 ) -> None:
     parsed = urlparse(urls[0])
-    print(parsed)
     assert parsed.scheme in (
         "https",
         "quic",
