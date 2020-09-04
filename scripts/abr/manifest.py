@@ -109,6 +109,30 @@ def main_frameize(output_dir: Optional[str]):
         frameize(in_source, out_dir, quality)
 
 
+def segmentize(in_source, segment_duration: int, dst_dir):
+    if segment_duration is None:
+        segment_duration = 10
+    print('in:%s out:%s' % (in_source, dst_dir))
+    cmd = "ffmpeg -i "  + in_source + " -map 0 -c copy -f segment -segment_time " + str(segment_duration) + " " + dst_dir + "bbb_sunflower_1080p_60fps_%3d.mp4"
+    os.system(cmd)
+
+def main_segmentize(segment_duration: int, output_dir: Optional[str]):
+    if segment_duration is None:
+        segment_duration = 10
+
+    if output_dir is None:
+        output_dir = prefix
+    else:
+        output_dir = output_dir + prefix
+
+
+    for resolution in resolutions:
+        quality = resolution.split('x')[1]
+        in_source = ('%s%s/bbb_%s_%s.mp4' % (output_dir, quality, quality, framerate))
+        check_and_create('%s%s/segments/' % (output_dir, quality))
+        out_dir = '%s%s/segments/' % (output_dir, quality)
+        segmentize(in_source, segment_duration, out_dir)
+
 def prepare_mpd(
     total_duration: int,
     seg_duration: int,
@@ -117,16 +141,19 @@ def prepare_mpd(
     timescale: int,
     output_dir: Optional[str]
 ) -> None:
+    #TODO: conver seg_duration from s to ms
     # NOTE: seg_duration in ms
     # NOTE: total_duration in s
     if seg_duration is None:
-        seg_duration = 1
+        seg_duration = 10
     if start_number is None:
         start_number = 0
     if total_duration is None:
-        total_duration = 10
+        total_duration = 298
     if timescale is None:
         timescale = 1
+
+    seg_duration = seg_duration * 1000
 
     bitrates_kbps = []
     resolution = []
@@ -144,14 +171,14 @@ def prepare_mpd(
 
     manifest = {
         "start_number": start_number,
-        "segment_duration_ms": seg_duration,
         "total_duration": total_duration,
+        "segment_duration_ms": seg_duration,
         "timescale": timescale,
         "total_segments": len(frame_size),
         "total_representation": total_representation,
         "bitrates_kbps": bitrates_kbps,
         "resolutions": resolution,
-        "segment_size_bytes": frame_size
+        "frame_size_bytes": frame_size
     }
 
     if output_dir is not None:
@@ -166,7 +193,7 @@ def prepare_mpd(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', '-p', help='Prefix')
-    parser.add_argument('--seg_duration', '-sd', help='segment duration in ms')
+    parser.add_argument('--seg_duration', '-sd', help='segment duration in s')
     parser.add_argument('--start_number', '-sn', help='Start number')
     parser.add_argument('--total_duration', '-td', help='Total duration in seconds')
     parser.add_argument('--timescale', '-ts', help='Timescale is time in ms')
@@ -216,7 +243,7 @@ def main():
         level=logging.DEBUG if args.verbose else logging.INFO,
     )
 
-    logging.debug("input: " + args.input + ", datetime: " + str(datetime.datetime.now()))
+    logging.info("input: " + args.input + ", datetime: " + str(datetime.datetime.now()))
 
     if args.output_dir is not None:
         directory_path = args.output_dir + prefix
@@ -229,6 +256,8 @@ def main():
 
     if args.action == 'frame':
         main_frameize(args.output_dir)
+    if args.action == 'segmentation':
+        main_segmentize(args.seg_duration, args.output_dir)
     elif args.action == 'encode':
         main_encode(args.output_dir)
     elif args.action == 'mpd':
