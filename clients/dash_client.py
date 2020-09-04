@@ -10,14 +10,14 @@ from collections import namedtuple
 from queue import Queue
 
 from aioquic.quic.configuration import QuicConfiguration
+from protocol.socketFactory import QuicFactorySocket
+from clients.h3_client import perform_http_request
 
 from adaptive.abr import BasicABR
 from adaptive.mpc import MPC
 from adaptive.bola import Bola
 from adaptive.BBA0 import BBA0
 from adaptive.BBA2 import BBA2
-
-from clients.build import run
 
 import config
 
@@ -27,6 +27,7 @@ adaptiveInfo = namedtuple("AdaptiveInfo",
                           'segment_time bitrates segments')
 downloadInfo = namedtuple("DownloadInfo",
                           'index file_name url quality resolution size downloaded time')
+NetworkPeriod = namedtuple('NetworkPeriod', 'time bandwidth latency')
 
 
 def segment_download_info(manifest, fname, size, idx, url, quality, resolution, time):
@@ -35,23 +36,6 @@ def segment_download_info(manifest, fname, size, idx, url, quality, resolution, 
     else:
         return downloadInfo(index=idx, file_name=fname, url=url, quality=quality, resolution=resolution, size=size, downloaded=size, time=time)
 
-
-async def perform_download(configuration: QuicConfiguration, args) -> None:
-	if args.urls is None:
-		args.urls = config.URLS
-
-	res = await run(
-            configuration=configuration,
-            urls=args.urls,
-            data=args.data,
-            include=args.include,
-            legacy_quic=args.legacy_quic,
-            output_dir=args.output_dir,
-            local_port=args.local_port,
-            zero_rtt=args.zero_rtt,
-            session_ticket=args.session_ticket,
-        )
-	return res
 
 def select_abr_algorithm(manifest_data, args):
 	if args.abr == "BBA0":
@@ -70,8 +54,8 @@ def select_abr_algorithm(manifest_data, args):
 
 
 class DashClient:
-	def __init__(self, configuration: QuicConfiguration, args):
-		self.configuration = configuration
+	def __init__(self, protocol: QuicFactorySocket, args):
+		self.protocol = protocol
 		self.args = args
 		self.manifest_data = None
 		self.latest_tput = 0
@@ -103,12 +87,17 @@ class DashClient:
 		#TODO: Cleanup: globally intakes a list of urls, while here
 		# we only consider a single urls per event.
 		logger.info("Downloading Manifest file")
-		res = await perform_download(self.configuration, self.args)
+		res = await perform_http_request(client=self.protocol,
+										url=self.args.urls[0],
+										data=self.args.data,
+										include=self.args.include,
+										output_dir=self.args.output_dir)
+
 		self.baseUrl, self.filename = os.path.split(self.args.urls[0])
 		self.manifest_data = json.load(open(".cache/" + self.filename))
-		self.lastDownloadSize = res[0][0]
-		self.latest_tput = res[0][1]
-		self.lastDownloadTime = res[0][2]
+		self.lastDownloadSize = res[0]
+		self.latest_tput = res[1]
+		self.lastDownloadTime = res[2]
 
 	async def dash_client_set_config(self) -> None:
 		logger.info("DASH client initialization in process")
@@ -148,20 +137,26 @@ class DashClient:
 			_, self.segment_baseName = fname.rsplit('/', 1)
 			self.args.urls[0] = self.baseUrl + '/' + str(os.stat(fname).st_size)
 			start = time.time()
-			res = await perform_download(self.configuration, self.args)
+
+			res = await perform_http_request(client=self.protocol,
+											url=self.args.urls[0],
+											data=self.args.data,
+											include=self.args.include,
+											output_dir=self.args.output_dir)
+
 			elapsed = time.time() - start
 
-		data = res[0][0]
+		data = res[0]
 		if data is not None:
 			self.lastDownloadTime = elapsed
 			self.lastDownloadSize = data
-			self.latest_tput =  res[0][1]
+			self.latest_tput =  res[1]
 
 			await self.segmentQueue.put(self.segment_baseName)
 
 			# QOE parameters update
 			self.perf_parameters['bitrate_change'].append((self.currentSegment + 1,  bitrate))
-			self.perf_parameters['tput_observed'].append((self.currentSegment + 1,  res[0][1]))
+			self.perf_parameters['tput_observed'].append((self.currentSegment + 1,  res[1]))
 			self.perf_parameters['avg_bitrate'] += bitrate
 			self.perf_parameters['avg_bitrate_change'] += abs(bitrate - self.perf_parameters['prev_rate'])
 
