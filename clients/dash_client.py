@@ -87,10 +87,12 @@ class DashClient:
 		#TODO: Cleanup: globally intakes a list of urls, while here
 		# we only consider a single urls per event.
 		logger.info("Downloading Manifest file")
+		# Include is hard-coded to be False as JSON parser would fail to
+		# parse any parameters which aren't valid JSON format.
 		res = await perform_http_request(client=self.protocol,
 										url=self.args.urls[0],
 										data=self.args.data,
-										include=self.args.include,
+										include=False,
 										output_dir=self.args.output_dir)
 
 		self.baseUrl, self.filename = os.path.split(self.args.urls[0])
