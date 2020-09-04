@@ -26,8 +26,8 @@ def load_json(path):
     return obj
 
 
-def get_segment_size(output_dir: Optional[str]):
-    segment_size_list = []
+def get_frame_size(output_dir: Optional[str]):
+    frame_size_list = []
     if output_dir is None:
         output_dir = prefix
     else:
@@ -41,9 +41,9 @@ def get_segment_size(output_dir: Optional[str]):
         for file in files:
             size = os.path.getsize(file)
             sg_size_res.append(size)
-        segment_size_list.append(sg_size_res)
+        frame_size_list.append(sg_size_res)
 
-    return segment_size_list
+    return frame_size_list
 
 
 def check_and_create(dir_path):
@@ -89,12 +89,12 @@ def main_encode(output_dir: Optional[str]):
 #                type + """)'""" + "\" -vsync vfr " + dst_dir + "/" + name + "-" + "%03d-" + quality + "p-.png")
 #         os.system(cmd)
 
-def segmentize(in_source, dst_dir, quality):
+def frameize(in_source, dst_dir, quality):
     print('in:%s out:%s' % (in_source, dst_dir))
     call(["./decode_frame", in_source, dst_dir, quality])
 
 
-def main_segmentize(output_dir: Optional[str]):
+def main_frameize(output_dir: Optional[str]):
     if output_dir is None:
         output_dir = prefix
     else:
@@ -106,7 +106,7 @@ def main_segmentize(output_dir: Optional[str]):
 
         check_and_create('%s%s/out/' % (output_dir, quality))
         out_dir = '%s%s/out/' % (output_dir, quality)
-        segmentize(in_source, out_dir, quality)
+        frameize(in_source, out_dir, quality)
 
 
 def prepare_mpd(
@@ -139,19 +139,19 @@ def prepare_mpd(
     for res in resolutions:
         resolution.append(res.split('x')[1])
 
-    seg_size = get_segment_size(output_dir)
-    seg_size= list(map(list, zip(*seg_size)))
+    frame_size = get_frame_size(output_dir)
+    frame_size= list(map(list, zip(*frame_size)))
 
     manifest = {
         "start_number": start_number,
         "segment_duration_ms": seg_duration,
         "total_duration": total_duration,
         "timescale": timescale,
-        "total_segments": len(seg_size),
+        "total_segments": len(frame_size),
         "total_representation": total_representation,
         "bitrates_kbps": bitrates_kbps,
         "resolutions": resolution,
-        "segment_size_bytes": seg_size
+        "segment_size_bytes": frame_size
     }
 
     if output_dir is not None:
@@ -227,8 +227,8 @@ def main():
 
     logging.info('Running "%s" script with arguments: prefix(%s) source(%s) fps(%s)' % (args.action, directory_path, source, framerate))
 
-    if args.action == 'segmentation':
-        main_segmentize(args.output_dir)
+    if args.action == 'frame':
+        main_frameize(args.output_dir)
     elif args.action == 'encode':
         main_encode(args.output_dir)
     elif args.action == 'mpd':
@@ -240,7 +240,7 @@ def main():
                     args.output_dir
         )
     else:
-        print("Unknown action requested. Specify one of: encode, segmentation, mpd")
+        print("Unknown action requested. Specify one of: encode, frame, segmentation, mpd")
 
 
 if __name__ == "__main__":
