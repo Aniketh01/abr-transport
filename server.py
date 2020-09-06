@@ -104,6 +104,7 @@ class HttpRequestHandler:
                 (b":scheme", b"https"),
                 (b":authority", self.authority),
                 (b":path", message["path"].encode()),
+                (b":Push", b"True")
             ] + [(k, v) for k, v in message["headers"]]
 
             # send push promise
@@ -136,6 +137,7 @@ class HttpServerProtocol(QuicFactorySocket):
             headers = []
             http_version = "0.9" if isinstance(self._http, H0Connection) else "3"
             raw_path = b""
+            push = b""
             method = ""
             protocol = None
             for header, value in event.headers:
@@ -148,6 +150,8 @@ class HttpServerProtocol(QuicFactorySocket):
                     raw_path = value
                 elif header == b":protocol":
                     protocol = value.decode()
+                elif header == b":Push":
+                    push = bool(value.decode())
                 elif header and not header.startswith(b":"):
                     headers.append((header, value))
 
@@ -156,7 +160,11 @@ class HttpServerProtocol(QuicFactorySocket):
             else:
                 path_bytes, query_string = raw_path, b""
             path = path_bytes.decode()
-            self._quic._logger.info("HTTP request %s %s", method, path)
+
+            if push:
+                self._quic._logger.info("HTTP request %s Push %s", method, path)
+            else:
+                self._quic._logger.info("HTTP request %s %s", method, path)
 
             # FIXME: add a public API to retrieve peer address
             client_addr = self._http._quic._network_paths[0].addr
