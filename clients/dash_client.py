@@ -137,7 +137,7 @@ class DashClient:
 
 		for fname in sorted(glob(segment_list)):
 			_, self.segment_baseName = fname.rsplit('/', 1)
-			self.args.urls[0] = self.baseUrl + '/' + str(os.stat(fname).st_size)
+			self.args.urls[0] = self.baseUrl.rstrip('manifest') + str(os.stat(fname).st_size)
 			start = time.time()
 
 			res = await perform_http_request(client=self.protocol,
@@ -179,10 +179,12 @@ class DashClient:
 	async def download_segment(self) -> None:
 		if config.NUM_SERVER_PUSHED_FRAMES is not None:
 			self.currentSegment = config.NUM_SERVER_PUSHED_FRAMES + 1
+			for i in range(1, config.NUM_SERVER_PUSHED_FRAMES + 1):
+				await self.segmentQueue.put("Frame-pushed-" + str(i) + ".ppm")
 		else:
 			self.currentSegment += 1
 
-		while self.currentSegment < self.totalSegments:
+		while self.currentSegment <= self.totalSegments:
 			async with self.lock:
 				currBuff = self.currBuffer
 

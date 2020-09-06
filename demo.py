@@ -4,15 +4,18 @@
 
 import datetime
 import os
+import json
 from urllib.parse import urlencode
 
 import httpbin
 from asgiref.wsgi import WsgiToAsgi
 from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse, Response
+from starlette.responses import PlainTextResponse, Response, JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 from starlette.websockets import WebSocketDisconnect
+
+import config
 
 ROOT = os.path.dirname(__file__)
 STATIC_ROOT = os.environ.get("STATIC_ROOT", os.path.join(ROOT, "htdocs"))
@@ -21,7 +24,7 @@ LOGS_PATH = os.path.join(STATIC_ROOT, "logs")
 QVIS_URL = "https://qvis.edm.uhasselt.be/"
 
 templates = Jinja2Templates(directory=os.path.join(STATIC_ROOT, "templates"))
-app = Starlette()
+app = Starlette(debug=True)
 
 
 @app.route("/")
@@ -31,6 +34,21 @@ async def homepage(request):
     """
     await request.send_push_promise("/style.css")
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.route("/manifest/{filename:str}")
+async def manifest(request):
+    server_pushed = 0
+
+    filename = request.path_params['filename']
+    manifest = json.load(open(STATIC_ROOT + "/" + filename))
+    segment = manifest['segment_size_bytes'][0][2]
+
+    if config.NUM_SERVER_PUSHED_FRAMES is not None:
+        while server_pushed < config.NUM_SERVER_PUSHED_FRAMES:
+            await request.send_push_promise(str(segment))
+            server_pushed += 1
+
+    return JSONResponse(manifest)
 
 
 @app.route("/echo", methods=["POST"])

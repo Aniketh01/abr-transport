@@ -1,7 +1,7 @@
 # Can provide a list of manifest to download via HTTP/3
 URLS = ['https://localhost:4433/']
 
-NUM_SERVER_PUSHED_FRAMES = 10
+NUM_SERVER_PUSHED_FRAMES = 3
 
 MANIFEST_FILE = "/home/aniketh/devel/src/abr-over-quic/htdocs/bbb_m.json"
 CA_CERTS = "tests/pycacert.pem"
