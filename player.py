@@ -23,7 +23,7 @@ from aioquic.quic.configuration import QuicConfiguration
 from aioquic.tls import SessionTicket
 
 from clients.dash_client import DashClient
-from protocol.client import connect
+from protocol.h3.client import connect
 from clients.quic_client import QuicClient
 from clients.h3_client import HttpClient
 

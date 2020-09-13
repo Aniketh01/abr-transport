@@ -22,8 +22,8 @@ from aioquic.h3.events import (
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
 
-from protocol.client import connect
-from protocol.socketFactory import QuicFactorySocket
+from protocol.h3.client import connect
+from protocol.h3.socketFactory import QuicFactorySocket
 
 try:
     import uvloop

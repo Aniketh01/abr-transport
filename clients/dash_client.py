@@ -10,7 +10,7 @@ from collections import namedtuple
 from queue import Queue
 
 from aioquic.quic.configuration import QuicConfiguration
-from protocol.socketFactory import QuicFactorySocket
+from protocol.h3.socketFactory import QuicFactorySocket
 from clients.h3_client import perform_http_request
 
 from adaptive.abr import BasicABR

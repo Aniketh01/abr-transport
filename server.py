@@ -27,8 +27,8 @@ from aioquic.quic.events import (
     StreamDataReceived
 )
 
-from protocol.socketFactory import QuicFactorySocket
-from protocol.server import start_server
+from protocol.h3.socketFactory import QuicFactorySocket
+from protocol.h3.server import start_server
 
 AsgiApplication = Callable
 HttpConnection = Union[H0Connection, H3Connection]
