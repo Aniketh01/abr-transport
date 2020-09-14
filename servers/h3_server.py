@@ -28,7 +28,6 @@ from protocol.h3.socketFactory import QuicFactorySocket
 
 AsgiApplication = Callable
 HttpConnection = Union[H0Connection, H3Connection]
-application = Callable
 
 SERVER_NAME = "aioquic/" + aioquic.__version__
 
