@@ -11,7 +11,7 @@ from queue import Queue
 
 from aioquic.quic.configuration import QuicConfiguration
 from protocol.h3.socketFactory import QuicFactorySocket
-from clients.h3_client import perform_http_request
+from clients.h3_client import perform_http_request, process_http_pushes
 
 from adaptive.abr import BasicABR
 from adaptive.mpc import MPC
@@ -89,6 +89,7 @@ class DashClient:
 		logger.info("Downloading Manifest file")
 		# Include is hard-coded to be False as JSON parser would fail to
 		# parse any parameters which aren't valid JSON format.
+		process_http_pushes(client=self.protocol, include=self.args.include, output_dir=self.args.output_dir)
 		res = await perform_http_request(client=self.protocol,
 										url=self.args.urls[0],
 										data=self.args.data,
@@ -184,7 +185,7 @@ class DashClient:
 		else:
 			self.currentSegment += 1
 
-		while self.currentSegment <= self.totalSegments:
+		while self.currentSegment <= 4:
 			async with self.lock:
 				currBuff = self.currBuffer
 
