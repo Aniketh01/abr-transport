@@ -29,6 +29,10 @@ from protocol.h3.socketFactory import QuicFactorySocket
 AsgiApplication = Callable
 HttpConnection = Union[H0Connection, H3Connection]
 
+module_str, attr_str = "demo:app".split(":", maxsplit=1)
+module = importlib.import_module(module_str)
+application = getattr(module, attr_str)
+
 SERVER_NAME = "aioquic/" + aioquic.__version__
 
 class HttpRequestHandler:

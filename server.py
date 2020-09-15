@@ -83,10 +83,10 @@ if __name__ == "__main__":
         level=logging.DEBUG if args.verbose else logging.INFO,
     )
 
-    # import ASGI application
-    module_str, attr_str = args.app.split(":", maxsplit=1)
-    module = importlib.import_module(module_str)
-    application = getattr(module, attr_str)
+    # # import ASGI application
+    # module_str, attr_str = args.app.split(":", maxsplit=1)
+    # module = importlib.import_module(module_str)
+    # application = getattr(module, attr_str)
 
     # create QUIC logger
     if args.quic_log:
