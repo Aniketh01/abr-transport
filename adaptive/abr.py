@@ -19,7 +19,7 @@ class BasicABR:
     on the basis of the throughput rule.
     '''
     def NextSegmentQualityIndex(self, playerStats):
-        tput = playerStats["lastTput"]
+        tput = playerStats["lastTput_kbps"]
         #p = manifest.segment_time
         m_bitrate = self.manifestData.get('bitrates_kbps')
         if not tput:
