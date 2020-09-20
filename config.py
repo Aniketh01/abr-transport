@@ -3,7 +3,9 @@ URLS = ['https://localhost:4433/']
 
 NUM_SERVER_PUSHED_FRAMES = 3
 
-MANIFEST_FILE = "/home/aniketh/devel/src/abr-over-quic/htdocs/bbb_m.json"
+#MANIFEST_FILE = "/home/aniketh/devel/src/abr-transport/htdocs/bbb_m.json"
+MANIFEST_FILE = "/Users/aniketh/devel/src/abr-transport/htdocs/bbb_m.json"
+ROOT_PATH = "/Users/aniketh/devel/src/abr-transport/"
 CA_CERTS = "tests/pycacert.pem"
 
 OUT_DIR = ".cache/"
