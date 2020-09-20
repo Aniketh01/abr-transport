@@ -89,7 +89,6 @@ class DashClient:
 		logger.info("Downloading Manifest file")
 		# Include is hard-coded to be False as JSON parser would fail to
 		# parse any parameters which aren't valid JSON format.
-		process_http_pushes(client=self.protocol, include=self.args.include, output_dir=self.args.output_dir)
 		res = await perform_http_request(client=self.protocol,
 										url=self.args.urls[0],
 										data=self.args.data,
@@ -105,6 +104,7 @@ class DashClient:
 	async def dash_client_set_config(self) -> None:
 		logger.info("DASH client initialization in process")
 		await self.download_manifest()
+		process_http_pushes(client=self.protocol, include=self.args.include, output_dir=self.args.output_dir)
 		self.abr_algorithm = select_abr_algorithm(self.manifest_data, self.args)
 		self.currentSegment = self.manifest_data['start_number']
 		self.totalSegments = self.getTotalSegments()

@@ -182,9 +182,7 @@ def process_http_pushes(
     include: bool,
     output_dir: Optional[str],
 ) -> None:
-    print(client.pushes.items())
     for _, http_events in client.pushes.items():
-        print("ANIKEGH ANIKEHT NAIKETH")
         method = ""
         octets = 0
         path = ""
