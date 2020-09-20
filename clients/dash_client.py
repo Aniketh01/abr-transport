@@ -96,7 +96,7 @@ class DashClient:
 										output_dir=self.args.output_dir)
 
 		self.baseUrl, self.filename = os.path.split(self.args.urls[0])
-		self.manifest_data = json.load(open(".cache/" + self.filename))
+		self.manifest_data = json.load(open(config.ROOT_PATH + ".cache/" + self.filename))
 		self.lastDownloadSize = res[0]
 		self.latest_tput = res[1]
 		self.lastDownloadTime = res[2]
