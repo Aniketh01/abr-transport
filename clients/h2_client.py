@@ -1,6 +1,8 @@
 import asyncio
 import io
 import ssl
+import functools
+
 
 from h2.config import H2Configuration
 from h2.connection import H2Connection
@@ -11,12 +13,13 @@ from h2.events import (
 from h2.exceptions import ProtocolError
 
 class H2Protocol(asyncio.Protocol):
-
-    def __init__(self) -> None:
+    def __init__(self, on_con_lost, loop) -> None:
         config = H2Configuration(client_side=True, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
         self.transport = None
         self.stream_data = {}
+        self.on_con_lost = on_con_lost
+        self.loop = loop
 
     def send_request(self):
         request_headers = [(':method', 'GET'),
@@ -40,7 +43,6 @@ class H2Protocol(asyncio.Protocol):
         else:
             self.transport.write(self.conn.data_to_send())
             for event in events:
-                print(event)
                 if isinstance(event, SettingsAcknowledged):
                     self.send_request()
                 if isinstance(event, DataReceived):
@@ -52,7 +54,7 @@ class H2Protocol(asyncio.Protocol):
         self.transport.write(self.conn.data_to_send())
 
     def log_push(self, headers, pid, sid):
-        print("Received server push of stream id: " + str(sid))
+        print("Received server push of stream id: {} in parent id: {} ".format(sid, pid))
 
     def receive_data(self, data, stream_id):
         try:
@@ -68,6 +70,14 @@ class H2Protocol(asyncio.Protocol):
         else:
             stream_data.write(data)
 
+    def connection_lost(self, exc):
+        print('The server closed the connection')
+        print('Stop the event loop')
+        self.on_con_lost.set_result(True)
+
+    def eof_received(self):
+        self.loop.close_connection()
+
     def log_data(self, stream_id):
         data = self.stream_data[stream_id]
         data.seek(0)
@@ -76,21 +86,31 @@ class H2Protocol(asyncio.Protocol):
         print('=================================')
 
 
+def get_http2_ssl_context():
+    ctx = ssl._create_unverified_context()
+    ctx.options |= (
+        ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+    )
+
+    ctx.options |= ssl.OP_NO_COMPRESSION
+    ctx.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20")
+    ctx.load_verify_locations('../tests/ssl_cert.pem')
+    ctx.set_alpn_protocols(["h2"])
+
+    return ctx
+
 def main():
-    ssl_context = ssl._create_unverified_context()
-    # ssl_context.options |= (
-    #         ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
-    # )
-    # ssl_context.set_ciphers("ECDHE+AESGCM")
-    # ssl_context.load_cert_chain(certfile=RESOURCE + "cert.crt", keyfile=RESOURCE + "cert.key")
-    ssl_context.check_hostname = False
-    ssl_context.load_verify_locations('/home/aniketh/devel/src/abr-over-quic/tests/ssl_cert.pem')
+    ssl_context = get_http2_ssl_context()
+
     loop = asyncio.get_event_loop()
-    coro = loop.create_connection(H2Protocol, host='localhost', port=8443, ssl=ssl_context)
+    on_con_lost = loop.create_future()
+
+    coro = loop.create_connection(lambda: H2Protocol(on_con_lost, loop), host='localhost', port=8443, ssl=ssl_context)
+
     loop.run_until_complete(coro)
     loop.run_forever()
-    loop.close()
+    loop.close() 
 
-
+ 
 if __name__ == '__main__':
     main()
